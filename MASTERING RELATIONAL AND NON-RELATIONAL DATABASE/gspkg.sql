@@ -1,1376 +1,964 @@
--- =====================================================
--- PACKAGE HEADER - Sistema de Doações e Necessidades
--- =====================================================
+-- ====================================
+-- PACKAGE SPECIFICATION: PKG_GS_CRUD
+-- ====================================
 
-CREATE OR REPLACE PACKAGE PKG_DONATION_SYSTEM AS
+CREATE OR REPLACE PACKAGE PKG_GS_CRUD AS
+
+    -- Exception personalizada
+    e_validation_error EXCEPTION;
+    PRAGMA EXCEPTION_INIT(e_validation_error, -20001);
+
+    -- =====================================
+    -- PROCEDURES PARA ORGANIZATIONS
+    -- =====================================
     
-    -- Exceções customizadas
-    exc_invalid_user EXCEPTION;
-    exc_invalid_organization EXCEPTION;
-    exc_invalid_data EXCEPTION;
-    exc_business_rule EXCEPTION;
-    
-    -- Procedures de Inserção
     PROCEDURE SP_INSERT_ORGANIZATION(
-        p_name VARCHAR2,
-        p_description CLOB,
-        p_location VARCHAR2,
-        p_contact_email VARCHAR2,
-        p_contact_phone VARCHAR2,
-        p_type VARCHAR2,
-        p_id OUT NUMBER
+        p_name              IN VARCHAR2,
+        p_description       IN CLOB,
+        p_location          IN VARCHAR2,
+        p_contact_email     IN VARCHAR2 DEFAULT NULL,
+        p_contact_phone     IN VARCHAR2 DEFAULT NULL,
+        p_type              IN VARCHAR2 DEFAULT NULL,
+        p_organization_id   OUT NUMBER
     );
+
+    PROCEDURE SP_UPDATE_ORGANIZATION(
+        p_id                IN NUMBER,
+        p_name              IN VARCHAR2 DEFAULT NULL,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2 DEFAULT NULL,
+        p_contact_email     IN VARCHAR2 DEFAULT NULL,
+        p_contact_phone     IN VARCHAR2 DEFAULT NULL,
+        p_type              IN VARCHAR2 DEFAULT NULL
+    );
+
+    PROCEDURE SP_DELETE_ORGANIZATION(
+        p_id IN NUMBER
+    );
+
+    -- =====================================
+    -- PROCEDURES PARA USERS
+    -- =====================================
     
     PROCEDURE SP_INSERT_USER(
-        p_email VARCHAR2,
-        p_name VARCHAR2,
-        p_password_hash VARCHAR2,
-        p_role VARCHAR2,
-        p_phone VARCHAR2 DEFAULT NULL,
-        p_organization_id NUMBER DEFAULT NULL,
-        p_id OUT NUMBER
+        p_email             IN VARCHAR2,
+        p_phone             IN VARCHAR2 DEFAULT NULL,
+        p_name              IN VARCHAR2,
+        p_password_hash     IN VARCHAR2 DEFAULT NULL,
+        p_role              IN VARCHAR2 DEFAULT NULL,
+        p_organization_id   IN NUMBER DEFAULT NULL,
+        p_user_id           OUT NUMBER
     );
+
+    PROCEDURE SP_UPDATE_USER(
+        p_id                IN NUMBER,
+        p_email             IN VARCHAR2 DEFAULT NULL,
+        p_phone             IN VARCHAR2 DEFAULT NULL,
+        p_name              IN VARCHAR2 DEFAULT NULL,
+        p_password_hash     IN VARCHAR2 DEFAULT NULL,
+        p_role              IN VARCHAR2 DEFAULT NULL,
+        p_is_active         IN CHAR DEFAULT NULL,
+        p_organization_id   IN NUMBER DEFAULT NULL
+    );
+
+    PROCEDURE SP_DELETE_USER(
+        p_id IN NUMBER
+    );
+
+    -- =====================================
+    -- PROCEDURES PARA NEEDS
+    -- =====================================
     
     PROCEDURE SP_INSERT_NEED(
-        p_title VARCHAR2,
-        p_description CLOB,
-        p_location VARCHAR2,
-        p_category VARCHAR2,
-        p_priority VARCHAR2,
-        p_quantity NUMBER,
-        p_unit VARCHAR2,
-        p_deadline_date TIMESTAMP,
-        p_creator_id NUMBER,
-        p_organization_id NUMBER,
-        p_id OUT NUMBER
+        p_title             IN VARCHAR2,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2,
+        p_category          IN VARCHAR2 DEFAULT NULL,
+        p_priority          IN VARCHAR2 DEFAULT NULL,
+        p_quantity          IN NUMBER,
+        p_unit              IN VARCHAR2 DEFAULT NULL,
+        p_deadline_date     IN TIMESTAMP DEFAULT NULL,
+        p_creator_id        IN NUMBER,
+        p_organization_id   IN NUMBER DEFAULT NULL,
+        p_need_id           OUT NUMBER
     );
+
+    PROCEDURE SP_UPDATE_NEED(
+        p_id                IN NUMBER,
+        p_title             IN VARCHAR2 DEFAULT NULL,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2 DEFAULT NULL,
+        p_category          IN VARCHAR2 DEFAULT NULL,
+        p_priority          IN VARCHAR2 DEFAULT NULL,
+        p_status            IN VARCHAR2 DEFAULT NULL,
+        p_quantity          IN NUMBER DEFAULT NULL,
+        p_unit              IN VARCHAR2 DEFAULT NULL,
+        p_deadline_date     IN TIMESTAMP DEFAULT NULL,
+        p_organization_id   IN NUMBER DEFAULT NULL
+    );
+
+    PROCEDURE SP_DELETE_NEED(
+        p_id IN NUMBER
+    );
+
+    -- =====================================
+    -- PROCEDURES PARA DONATIONS
+    -- =====================================
     
     PROCEDURE SP_INSERT_DONATION(
-        p_title VARCHAR2,
-        p_description CLOB,
-        p_location VARCHAR2,
-        p_category VARCHAR2,
-        p_quantity NUMBER,
-        p_unit VARCHAR2,
-        p_expiry_date TIMESTAMP,
-        p_donor_id NUMBER,
-        p_id OUT NUMBER
+        p_title             IN VARCHAR2,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2,
+        p_category          IN VARCHAR2 DEFAULT NULL,
+        p_quantity          IN NUMBER,
+        p_unit              IN VARCHAR2 DEFAULT NULL,
+        p_expiry_date       IN TIMESTAMP DEFAULT NULL,
+        p_donor_id          IN NUMBER,
+        p_donation_id       OUT NUMBER
     );
-    
-    -- Procedures de Alteração
-    PROCEDURE SP_UPDATE_NEED_STATUS(
-        p_need_id NUMBER,
-        p_status VARCHAR2,
-        p_user_id NUMBER
+
+    PROCEDURE SP_UPDATE_DONATION(
+        p_id                IN NUMBER,
+        p_title             IN VARCHAR2 DEFAULT NULL,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2 DEFAULT NULL,
+        p_category          IN VARCHAR2 DEFAULT NULL,
+        p_status            IN VARCHAR2 DEFAULT NULL,
+        p_quantity          IN NUMBER DEFAULT NULL,
+        p_unit              IN VARCHAR2 DEFAULT NULL,
+        p_expiry_date       IN TIMESTAMP DEFAULT NULL
     );
-    
-    PROCEDURE SP_UPDATE_DONATION_STATUS(
-        p_donation_id NUMBER,
-        p_status VARCHAR2,
-        p_user_id NUMBER
-    );
-    
-    PROCEDURE SP_UPDATE_USER_PROFILE(
-        p_user_id NUMBER,
-        p_name VARCHAR2,
-        p_phone VARCHAR2,
-        p_contact_email VARCHAR2
-    );
-    
-    -- Procedures de Exclusão (Soft Delete)
-    PROCEDURE SP_DELETE_NEED(
-        p_need_id NUMBER,
-        p_user_id NUMBER
-    );
-    
+
     PROCEDURE SP_DELETE_DONATION(
-        p_donation_id NUMBER,
-        p_user_id NUMBER
+        p_id IN NUMBER
     );
+
+    -- =====================================
+    -- PROCEDURES PARA MATCHES
+    -- =====================================
     
-    -- Funções de Cálculo e Ranking
-    FUNCTION FN_CALCULATE_COMPATIBILITY_SCORE(
-        p_need_id NUMBER,
-        p_donation_id NUMBER
-    ) RETURN NUMBER;
-    
-    FUNCTION FN_GET_USER_DONATION_RANKING(
-        p_user_id NUMBER
-    ) RETURN NUMBER;
-    
-    FUNCTION FN_CALCULATE_URGENCY_SCORE(
-        p_need_id NUMBER
-    ) RETURN NUMBER;
-    
-    FUNCTION FN_GET_ORGANIZATION_RISK_LEVEL(
-        p_organization_id NUMBER
-    ) RETURN VARCHAR2;
-    
-    -- Procedure para Matching Automático
-    PROCEDURE SP_AUTO_MATCH_DONATIONS;
-    
-    -- Procedure de Relatórios
-    PROCEDURE SP_GENERATE_MONTHLY_REPORT(
-        p_month NUMBER,
-        p_year NUMBER
+    PROCEDURE SP_INSERT_MATCH(
+        p_need_id               IN NUMBER,
+        p_donation_id           IN NUMBER,
+        p_matched_quantity      IN NUMBER DEFAULT NULL,
+        p_compatibility_score   IN NUMBER DEFAULT NULL,
+        p_notes                 IN CLOB DEFAULT NULL,
+        p_match_id              OUT NUMBER
     );
-    
-    PROCEDURE SP_GENERATE_ORGANIZATION_SUMMARY(
-        p_organization_id NUMBER
+
+    PROCEDURE SP_UPDATE_MATCH(
+        p_id                    IN NUMBER,
+        p_status                IN VARCHAR2 DEFAULT NULL,
+        p_matched_quantity      IN NUMBER DEFAULT NULL,
+        p_compatibility_score   IN NUMBER DEFAULT NULL,
+        p_notes                 IN CLOB DEFAULT NULL
     );
+
+    PROCEDURE SP_DELETE_MATCH(
+        p_id IN NUMBER
+    );
+
+    -- =====================================
+    -- PROCEDURES PARA AUDITORIA
+    -- =====================================
     
-END PKG_DONATION_SYSTEM;
+    PROCEDURE SP_INSERT_AUDIT(
+        p_table_name        IN VARCHAR2,
+        p_register_id       IN NUMBER,
+        p_operation_type    IN VARCHAR2,
+        p_db_user           IN VARCHAR2,
+        p_old_data          IN CLOB DEFAULT NULL,
+        p_new_data          IN CLOB DEFAULT NULL,
+        p_audit_id          OUT NUMBER
+    );
+
+END PKG_GS_CRUD;
 /
 
--- =====================================================
--- PACKAGE BODY - Implementação
--- =====================================================
+-- ====================================
+-- PACKAGE BODY: PKG_GS_CRUD
+-- ====================================
 
-CREATE OR REPLACE PACKAGE BODY PKG_DONATION_SYSTEM AS
+CREATE OR REPLACE PACKAGE BODY PKG_GS_CRUD AS
 
-    -- =====================================================
-    -- PROCEDURES DE INSERÇÃO
-    -- =====================================================
+    -- =====================================
+    -- PROCEDURES PARA ORGANIZATIONS
+    -- =====================================
     
     PROCEDURE SP_INSERT_ORGANIZATION(
-        p_name VARCHAR2,
-        p_description CLOB,
-        p_location VARCHAR2,
-        p_contact_email VARCHAR2,
-        p_contact_phone VARCHAR2,
-        p_type VARCHAR2,
-        p_id OUT NUMBER
+        p_name              IN VARCHAR2,
+        p_description       IN CLOB,
+        p_location          IN VARCHAR2,
+        p_contact_email     IN VARCHAR2 DEFAULT NULL,
+        p_contact_phone     IN VARCHAR2 DEFAULT NULL,
+        p_type              IN VARCHAR2 DEFAULT NULL,
+        p_organization_id   OUT NUMBER
     ) IS
-        v_count NUMBER;
     BEGIN
-        -- Validação de entrada
-        IF p_name IS NULL OR LENGTH(TRIM(p_name)) = 0 THEN
-            RAISE exc_invalid_data;
+        -- Validações
+        IF p_name IS NULL OR TRIM(p_name) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Nome da organização é obrigatório');
         END IF;
         
-        -- Verifica se organização já existe
-        SELECT COUNT(*) INTO v_count
-        FROM GS_organizations
-        WHERE UPPER(name) = UPPER(p_name)
-        AND location = p_location;
-        
-        IF v_count > 0 THEN
-            RAISE exc_business_rule;
+        IF p_location IS NULL OR TRIM(p_location) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Localização é obrigatória');
         END IF;
         
-        -- Insere nova organização
+        IF p_type IS NOT NULL AND p_type NOT IN ('NGO', 'CHARITY', 'GOVERNMENT', 'RELIGIOUS', 'COMMUNITY') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Tipo de organização inválido');
+        END IF;
+
+        -- Insert
         INSERT INTO GS_organizations (
             name, description, location, contact_email, 
             contact_phone, type, created_at, updated_at
         ) VALUES (
-            p_name, p_description, p_location, p_contact_email,
+            TRIM(p_name), p_description, TRIM(p_location), p_contact_email,
             p_contact_phone, p_type, SYSTIMESTAMP, SYSTIMESTAMP
-        ) RETURNING id INTO p_id;
+        ) RETURNING id INTO p_organization_id;
         
         COMMIT;
         
-        DBMS_OUTPUT.PUT_LINE('Organização criada com sucesso. ID: ' || p_id);
-        
     EXCEPTION
-        WHEN exc_invalid_data THEN
-            ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20001, 'Dados inválidos: Nome é obrigatório');
-        WHEN exc_business_rule THEN
-            ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20002, 'Organização já existe neste local');
         WHEN OTHERS THEN
             ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20003, 'Erro inesperado: ' || SQLERRM);
+            RAISE;
     END SP_INSERT_ORGANIZATION;
 
-    PROCEDURE SP_INSERT_USER(
-        p_email VARCHAR2,
-        p_name VARCHAR2,
-        p_password_hash VARCHAR2,
-        p_role VARCHAR2,
-        p_phone VARCHAR2 DEFAULT NULL,
-        p_organization_id NUMBER DEFAULT NULL,
-        p_id OUT NUMBER
+    PROCEDURE SP_UPDATE_ORGANIZATION(
+        p_id                IN NUMBER,
+        p_name              IN VARCHAR2 DEFAULT NULL,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2 DEFAULT NULL,
+        p_contact_email     IN VARCHAR2 DEFAULT NULL,
+        p_contact_phone     IN VARCHAR2 DEFAULT NULL,
+        p_type              IN VARCHAR2 DEFAULT NULL
     ) IS
         v_count NUMBER;
-        v_org_exists NUMBER := 0;
     BEGIN
+        -- Verificar se existe
+        SELECT COUNT(*) INTO v_count FROM GS_organizations WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Organização não encontrada');
+        END IF;
+        
         -- Validações
-        IF p_email IS NULL OR p_name IS NULL OR p_password_hash IS NULL THEN
-            RAISE exc_invalid_data;
+        IF p_type IS NOT NULL AND p_type NOT IN ('NGO', 'CHARITY', 'GOVERNMENT', 'RELIGIOUS', 'COMMUNITY') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Tipo de organização inválido');
         END IF;
-        
-        -- Verifica se email já existe
-        SELECT COUNT(*) INTO v_count
-        FROM GS_users
-        WHERE email = p_email;
-        
-        IF v_count > 0 THEN
-            RAISE exc_business_rule;
-        END IF;
-        
-        -- Verifica se organização existe (se informada)
-        IF p_organization_id IS NOT NULL THEN
-            SELECT COUNT(*) INTO v_org_exists
-            FROM GS_organizations
-            WHERE id = p_organization_id;
-            
-            IF v_org_exists = 0 THEN
-                RAISE exc_invalid_organization;
-            END IF;
-        END IF;
-        
-        -- Insere usuário
-        INSERT INTO GS_users (
-            email, name, password_hash, role, phone,
-            organization_id, created_at, updated_at, is_active
-        ) VALUES (
-            p_email, p_name, p_password_hash, p_role, p_phone,
-            p_organization_id, SYSTIMESTAMP, SYSTIMESTAMP, 'Y'
-        ) RETURNING id INTO p_id;
+
+        -- Update dinâmico
+        UPDATE GS_organizations 
+        SET name = NVL(TRIM(p_name), name),
+            description = NVL(p_description, description),
+            location = NVL(TRIM(p_location), location),
+            contact_email = NVL(p_contact_email, contact_email),
+            contact_phone = NVL(p_contact_phone, contact_phone),
+            type = NVL(p_type, type),
+            updated_at = SYSTIMESTAMP
+        WHERE id = p_id;
         
         COMMIT;
         
     EXCEPTION
-        WHEN exc_invalid_data THEN
+        WHEN OTHERS THEN
             ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20004, 'Dados obrigatórios não informados');
-        WHEN exc_business_rule THEN
+            RAISE;
+    END SP_UPDATE_ORGANIZATION;
+
+    PROCEDURE SP_DELETE_ORGANIZATION(
+        p_id IN NUMBER
+    ) IS
+        v_count NUMBER;
+    BEGIN
+        -- Verificar se existe
+        SELECT COUNT(*) INTO v_count FROM GS_organizations WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Organização não encontrada');
+        END IF;
+        
+        -- Verificar dependências
+        SELECT COUNT(*) INTO v_count FROM GS_users WHERE organization_id = p_id;
+        IF v_count > 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Não é possível excluir organização com usuários vinculados');
+        END IF;
+
+        DELETE FROM GS_organizations WHERE id = p_id;
+        COMMIT;
+        
+    EXCEPTION
+        WHEN OTHERS THEN
             ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20005, 'Email já cadastrado');
-        WHEN exc_invalid_organization THEN
-            ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20006, 'Organização não encontrada');
+            RAISE;
+    END SP_DELETE_ORGANIZATION;
+
+    -- =====================================
+    -- PROCEDURES PARA USERS
+    -- =====================================
+    
+    PROCEDURE SP_INSERT_USER(
+        p_email             IN VARCHAR2,
+        p_phone             IN VARCHAR2 DEFAULT NULL,
+        p_name              IN VARCHAR2,
+        p_password_hash     IN VARCHAR2 DEFAULT NULL,
+        p_role              IN VARCHAR2 DEFAULT NULL,
+        p_organization_id   IN NUMBER DEFAULT NULL,
+        p_user_id           OUT NUMBER
+    ) IS
+        v_count NUMBER;
+    BEGIN
+        -- Validações
+        IF p_email IS NULL OR TRIM(p_email) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Email é obrigatório');
+        END IF;
+        
+        IF p_name IS NULL OR TRIM(p_name) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Nome é obrigatório');
+        END IF;
+        
+        IF p_role IS NOT NULL AND p_role NOT IN ('DONOR', 'NGO_MEMBER', 'ADMIN') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Role inválido');
+        END IF;
+        
+        -- Verificar se organização existe
+        IF p_organization_id IS NOT NULL THEN
+            SELECT COUNT(*) INTO v_count FROM GS_organizations WHERE id = p_organization_id;
+            IF v_count = 0 THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Organização não encontrada');
+            END IF;
+        END IF;
+
+        -- Insert
+        INSERT INTO GS_users (
+            email, phone, name, password_hash, role, 
+            organization_id, created_at, updated_at
+        ) VALUES (
+            LOWER(TRIM(p_email)), p_phone, TRIM(p_name), p_password_hash, p_role,
+            p_organization_id, SYSTIMESTAMP, SYSTIMESTAMP
+        ) RETURNING id INTO p_user_id;
+        
+        COMMIT;
+        
+    EXCEPTION
         WHEN OTHERS THEN
             ROLLBACK;
             RAISE;
     END SP_INSERT_USER;
 
-    PROCEDURE SP_INSERT_NEED(
-        p_title VARCHAR2,
-        p_description CLOB,
-        p_location VARCHAR2,
-        p_category VARCHAR2,
-        p_priority VARCHAR2,
-        p_quantity NUMBER,
-        p_unit VARCHAR2,
-        p_deadline_date TIMESTAMP,
-        p_creator_id NUMBER,
-        p_organization_id NUMBER,
-        p_id OUT NUMBER
+    PROCEDURE SP_UPDATE_USER(
+        p_id                IN NUMBER,
+        p_email             IN VARCHAR2 DEFAULT NULL,
+        p_phone             IN VARCHAR2 DEFAULT NULL,
+        p_name              IN VARCHAR2 DEFAULT NULL,
+        p_password_hash     IN VARCHAR2 DEFAULT NULL,
+        p_role              IN VARCHAR2 DEFAULT NULL,
+        p_is_active         IN CHAR DEFAULT NULL,
+        p_organization_id   IN NUMBER DEFAULT NULL
     ) IS
-        v_user_exists NUMBER;
-        v_org_exists NUMBER;
+        v_count NUMBER;
     BEGIN
-        -- Validações básicas
-        IF p_title IS NULL OR p_quantity <= 0 OR p_creator_id IS NULL THEN
-            RAISE exc_invalid_data;
+        -- Verificar se existe
+        SELECT COUNT(*) INTO v_count FROM GS_users WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Usuário não encontrado');
         END IF;
         
-        -- Verifica se usuário existe
-        SELECT COUNT(*) INTO v_user_exists
-        FROM GS_users
-        WHERE id = p_creator_id AND is_active = 'Y';
-        
-        IF v_user_exists = 0 THEN
-            RAISE exc_invalid_user;
+        -- Validações
+        IF p_role IS NOT NULL AND p_role NOT IN ('DONOR', 'NGO_MEMBER', 'ADMIN') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Role inválido');
         END IF;
         
-        -- Verifica organização se informada
+        IF p_is_active IS NOT NULL AND p_is_active NOT IN ('Y', 'N') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Status ativo inválido');
+        END IF;
+        
+        -- Verificar se organização existe
         IF p_organization_id IS NOT NULL THEN
-            SELECT COUNT(*) INTO v_org_exists
-            FROM GS_organizations
-            WHERE id = p_organization_id;
-            
-            IF v_org_exists = 0 THEN
-                RAISE exc_invalid_organization;
+            SELECT COUNT(*) INTO v_count FROM GS_organizations WHERE id = p_organization_id;
+            IF v_count = 0 THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Organização não encontrada');
             END IF;
         END IF;
-        
-        -- Insere necessidade
-        INSERT INTO GS_needs (
-            title, description, location, category, priority,
-            status, quantity, unit, deadline_date, created_at,
-            updated_at, creator_id, organization_id
-        ) VALUES (
-            p_title, p_description, p_location, p_category, p_priority,
-            'ACTIVE', p_quantity, p_unit, p_deadline_date, SYSTIMESTAMP,
-            SYSTIMESTAMP, p_creator_id, p_organization_id
-        ) RETURNING id INTO p_id;
+
+        -- Update dinâmico
+        UPDATE GS_users 
+        SET email = NVL(LOWER(TRIM(p_email)), email),
+            phone = NVL(p_phone, phone),
+            name = NVL(TRIM(p_name), name),
+            password_hash = NVL(p_password_hash, password_hash),
+            role = NVL(p_role, role),
+            is_active = NVL(p_is_active, is_active),
+            organization_id = NVL(p_organization_id, organization_id),
+            updated_at = SYSTIMESTAMP
+        WHERE id = p_id;
         
         COMMIT;
         
     EXCEPTION
-        WHEN exc_invalid_data THEN
+        WHEN OTHERS THEN
             ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20007, 'Dados da necessidade inválidos');
-        WHEN exc_invalid_user THEN
+            RAISE;
+    END SP_UPDATE_USER;
+
+    PROCEDURE SP_DELETE_USER(
+        p_id IN NUMBER
+    ) IS
+        v_count NUMBER;
+    BEGIN
+        -- Verificar se existe
+        SELECT COUNT(*) INTO v_count FROM GS_users WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Usuário não encontrado');
+        END IF;
+        
+        -- Verificar dependências
+        SELECT COUNT(*) INTO v_count FROM GS_needs WHERE creator_id = p_id;
+        IF v_count > 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Não é possível excluir usuário com necessidades criadas');
+        END IF;
+        
+        SELECT COUNT(*) INTO v_count FROM GS_donations WHERE donor_id = p_id;
+        IF v_count > 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Não é possível excluir usuário com doações realizadas');
+        END IF;
+
+        DELETE FROM GS_users WHERE id = p_id;
+        COMMIT;
+        
+    EXCEPTION
+        WHEN OTHERS THEN
             ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20008, 'Usuário não encontrado ou inativo');
+            RAISE;
+    END SP_DELETE_USER;
+
+    -- =====================================
+    -- PROCEDURES PARA NEEDS
+    -- =====================================
+    
+    PROCEDURE SP_INSERT_NEED(
+        p_title             IN VARCHAR2,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2,
+        p_category          IN VARCHAR2 DEFAULT NULL,
+        p_priority          IN VARCHAR2 DEFAULT NULL,
+        p_quantity          IN NUMBER,
+        p_unit              IN VARCHAR2 DEFAULT NULL,
+        p_deadline_date     IN TIMESTAMP DEFAULT NULL,
+        p_creator_id        IN NUMBER,
+        p_organization_id   IN NUMBER DEFAULT NULL,
+        p_need_id           OUT NUMBER
+    ) IS
+        v_count NUMBER;
+    BEGIN
+        -- Validações
+        IF p_title IS NULL OR TRIM(p_title) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Título é obrigatório');
+        END IF;
+        
+        IF p_location IS NULL OR TRIM(p_location) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Localização é obrigatória');
+        END IF;
+        
+        IF p_quantity IS NULL OR p_quantity <= 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Quantidade deve ser maior que zero');
+        END IF;
+        
+        IF p_priority IS NOT NULL AND p_priority NOT IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Prioridade inválida');
+        END IF;
+        
+        -- Verificar se creator existe
+        SELECT COUNT(*) INTO v_count FROM GS_users WHERE id = p_creator_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Usuário criador não encontrado');
+        END IF;
+        
+        -- Verificar se organização existe
+        IF p_organization_id IS NOT NULL THEN
+            SELECT COUNT(*) INTO v_count FROM GS_organizations WHERE id = p_organization_id;
+            IF v_count = 0 THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Organização não encontrada');
+            END IF;
+        END IF;
+
+        -- Insert
+        INSERT INTO GS_needs (
+            title, description, location, category, priority, status,
+            quantity, unit, deadline_date, creator_id, organization_id,
+            created_at, updated_at
+        ) VALUES (
+            TRIM(p_title), p_description, TRIM(p_location), p_category, p_priority, 'ACTIVE',
+            p_quantity, p_unit, p_deadline_date, p_creator_id, p_organization_id,
+            SYSTIMESTAMP, SYSTIMESTAMP
+        ) RETURNING id INTO p_need_id;
+        
+        COMMIT;
+        
+    EXCEPTION
         WHEN OTHERS THEN
             ROLLBACK;
             RAISE;
     END SP_INSERT_NEED;
 
-    PROCEDURE SP_INSERT_DONATION(
-        p_title VARCHAR2,
-        p_description CLOB,
-        p_location VARCHAR2,
-        p_category VARCHAR2,
-        p_quantity NUMBER,
-        p_unit VARCHAR2,
-        p_expiry_date TIMESTAMP,
-        p_donor_id NUMBER,
-        p_id OUT NUMBER
+    PROCEDURE SP_UPDATE_NEED(
+        p_id                IN NUMBER,
+        p_title             IN VARCHAR2 DEFAULT NULL,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2 DEFAULT NULL,
+        p_category          IN VARCHAR2 DEFAULT NULL,
+        p_priority          IN VARCHAR2 DEFAULT NULL,
+        p_status            IN VARCHAR2 DEFAULT NULL,
+        p_quantity          IN NUMBER DEFAULT NULL,
+        p_unit              IN VARCHAR2 DEFAULT NULL,
+        p_deadline_date     IN TIMESTAMP DEFAULT NULL,
+        p_organization_id   IN NUMBER DEFAULT NULL
     ) IS
-        v_donor_exists NUMBER;
+        v_count NUMBER;
     BEGIN
+        -- Verificar se existe
+        SELECT COUNT(*) INTO v_count FROM GS_needs WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Necessidade não encontrada');
+        END IF;
+        
         -- Validações
-        IF p_title IS NULL OR p_quantity <= 0 OR p_donor_id IS NULL THEN
-            RAISE exc_invalid_data;
+        IF p_priority IS NOT NULL AND p_priority NOT IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Prioridade inválida');
         END IF;
         
-        -- Verifica se doador existe
-        SELECT COUNT(*) INTO v_donor_exists
-        FROM GS_users
-        WHERE id = p_donor_id AND is_active = 'Y';
-        
-        IF v_donor_exists = 0 THEN
-            RAISE exc_invalid_user;
+        IF p_status IS NOT NULL AND p_status NOT IN ('ACTIVE', 'PARTIALLY_FULFILLED', 'FULFILLED', 'EXPIRED', 'CANCELLED') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Status inválido');
         END IF;
         
-        -- Insere doação
-        INSERT INTO GS_donations (
-            title, description, location, category, status,
-            quantity, unit, expiry_date, created_at,
-            updated_at, donor_id
-        ) VALUES (
-            p_title, p_description, p_location, p_category, 'AVAILABLE',
-            p_quantity, p_unit, p_expiry_date, SYSTIMESTAMP,
-            SYSTIMESTAMP, p_donor_id
-        ) RETURNING id INTO p_id;
+        IF p_quantity IS NOT NULL AND p_quantity <= 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Quantidade deve ser maior que zero');
+        END IF;
         
-        COMMIT;
-        
-    EXCEPTION
-        WHEN exc_invalid_data THEN
-            ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20009, 'Dados da doação inválidos');
-        WHEN exc_invalid_user THEN
-            ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20010, 'Doador não encontrado');
-        WHEN OTHERS THEN
-            ROLLBACK;
-            RAISE;
-    END SP_INSERT_DONATION;
-
-    -- =====================================================
-    -- PROCEDURES DE ALTERAÇÃO
-    -- =====================================================
-    
-    PROCEDURE SP_UPDATE_NEED_STATUS(
-        p_need_id NUMBER,
-        p_status VARCHAR2,
-        p_user_id NUMBER
-    ) IS
-        v_current_status VARCHAR2(20);
-        v_user_role VARCHAR2(20);
-    BEGIN
-        -- Busca status atual e valida usuário
-        SELECT n.status, u.role 
-        INTO v_current_status, v_user_role
-        FROM GS_needs n
-        JOIN GS_users u ON (u.id = p_user_id)
-        WHERE n.id = p_need_id;
-        
-        -- Regras de negócio para mudança de status
-        IF v_current_status = 'FULFILLED' AND p_status != 'FULFILLED' THEN
-            IF v_user_role != 'ADMIN' THEN
-                RAISE exc_business_rule;
+        -- Verificar se organização existe
+        IF p_organization_id IS NOT NULL THEN
+            SELECT COUNT(*) INTO v_count FROM GS_organizations WHERE id = p_organization_id;
+            IF v_count = 0 THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Organização não encontrada');
             END IF;
         END IF;
-        
-        -- Atualiza status
+
+        -- Update dinâmico
         UPDATE GS_needs 
-        SET status = p_status, updated_at = SYSTIMESTAMP
-        WHERE id = p_need_id;
-        
-        COMMIT;
-        
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20011, 'Necessidade ou usuário não encontrado');
-        WHEN exc_business_rule THEN
-            RAISE_APPLICATION_ERROR(-20012, 'Operação não permitida para este usuário');
-        WHEN OTHERS THEN
-            ROLLBACK;
-            RAISE;
-    END SP_UPDATE_NEED_STATUS;
-
-    PROCEDURE SP_UPDATE_DONATION_STATUS(
-        p_donation_id NUMBER,
-        p_status VARCHAR2,
-        p_user_id NUMBER
-    ) IS
-        v_donor_id NUMBER;
-        v_user_role VARCHAR2(20);
-    BEGIN
-        -- Verifica se usuário pode alterar esta doação
-        SELECT d.donor_id, u.role 
-        INTO v_donor_id, v_user_role
-        FROM GS_donations d
-        JOIN GS_users u ON (u.id = p_user_id)
-        WHERE d.id = p_donation_id;
-        
-        -- Verifica permissão
-        IF v_donor_id != p_user_id AND v_user_role != 'ADMIN' THEN
-            RAISE exc_business_rule;
-        END IF;
-        
-        -- Atualiza status
-        UPDATE GS_donations 
-        SET status = p_status, updated_at = SYSTIMESTAMP
-        WHERE id = p_donation_id;
-        
-        COMMIT;
-        
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20013, 'Doação não encontrada');
-        WHEN exc_business_rule THEN
-            RAISE_APPLICATION_ERROR(-20014, 'Usuário sem permissão para alterar esta doação');
-        WHEN OTHERS THEN
-            ROLLBACK;
-            RAISE;
-    END SP_UPDATE_DONATION_STATUS;
-
-    PROCEDURE SP_UPDATE_USER_PROFILE(
-        p_user_id NUMBER,
-        p_name VARCHAR2,
-        p_phone VARCHAR2,
-        p_contact_email VARCHAR2
-    ) IS
-    BEGIN
-        UPDATE GS_users 
-        SET name = NVL(p_name, name),
-            phone = NVL(p_phone, phone),
+        SET title = NVL(TRIM(p_title), title),
+            description = NVL(p_description, description),
+            location = NVL(TRIM(p_location), location),
+            category = NVL(p_category, category),
+            priority = NVL(p_priority, priority),
+            status = NVL(p_status, status),
+            quantity = NVL(p_quantity, quantity),
+            unit = NVL(p_unit, unit),
+            deadline_date = NVL(p_deadline_date, deadline_date),
+            organization_id = NVL(p_organization_id, organization_id),
             updated_at = SYSTIMESTAMP
-        WHERE id = p_user_id AND is_active = 'Y';
-        
-        IF SQL%ROWCOUNT = 0 THEN
-            RAISE exc_invalid_user;
-        END IF;
+        WHERE id = p_id;
         
         COMMIT;
         
     EXCEPTION
-        WHEN exc_invalid_user THEN
-            RAISE_APPLICATION_ERROR(-20015, 'Usuário não encontrado');
         WHEN OTHERS THEN
             ROLLBACK;
             RAISE;
-    END SP_UPDATE_USER_PROFILE;
+    END SP_UPDATE_NEED;
 
-    -- =====================================================
-    -- PROCEDURES DE EXCLUSÃO (SOFT DELETE)
-    -- =====================================================
-    
     PROCEDURE SP_DELETE_NEED(
-        p_need_id NUMBER,
-        p_user_id NUMBER
+        p_id IN NUMBER
     ) IS
-        v_creator_id NUMBER;
-        v_user_role VARCHAR2(20);
+        v_count NUMBER;
     BEGIN
-        -- Verifica permissão
-        SELECT n.creator_id, u.role 
-        INTO v_creator_id, v_user_role
-        FROM GS_needs n
-        JOIN GS_users u ON (u.id = p_user_id)
-        WHERE n.id = p_need_id;
-        
-        IF v_creator_id != p_user_id AND v_user_role != 'ADMIN' THEN
-            RAISE exc_business_rule;
+        -- Verificar se existe
+        SELECT COUNT(*) INTO v_count FROM GS_needs WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Necessidade não encontrada');
         END IF;
         
-        -- Soft delete - marca como cancelada
-        UPDATE GS_needs 
-        SET status = 'CANCELLED', updated_at = SYSTIMESTAMP
-        WHERE id = p_need_id;
-        
+        -- Verificar dependências
+        SELECT COUNT(*) INTO v_count FROM GS_matches WHERE need_id = p_id;
+        IF v_count > 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Não é possível excluir necessidade com matches vinculados');
+        END IF;
+
+        DELETE FROM GS_needs WHERE id = p_id;
         COMMIT;
         
     EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20016, 'Necessidade não encontrada');
-        WHEN exc_business_rule THEN
-            RAISE_APPLICATION_ERROR(-20017, 'Sem permissão para excluir esta necessidade');
         WHEN OTHERS THEN
             ROLLBACK;
             RAISE;
     END SP_DELETE_NEED;
 
-    PROCEDURE SP_DELETE_DONATION(
-        p_donation_id NUMBER,
-        p_user_id NUMBER
+    -- =====================================
+    -- PROCEDURES PARA DONATIONS
+    -- =====================================
+    
+    PROCEDURE SP_INSERT_DONATION(
+        p_title             IN VARCHAR2,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2,
+        p_category          IN VARCHAR2 DEFAULT NULL,
+        p_quantity          IN NUMBER,
+        p_unit              IN VARCHAR2 DEFAULT NULL,
+        p_expiry_date       IN TIMESTAMP DEFAULT NULL,
+        p_donor_id          IN NUMBER,
+        p_donation_id       OUT NUMBER
     ) IS
-        v_donor_id NUMBER;
-        v_user_role VARCHAR2(20);
-        v_current_status VARCHAR2(20);
+        v_count NUMBER;
     BEGIN
-        -- Verifica permissão e status
-        SELECT d.donor_id, u.role, d.status 
-        INTO v_donor_id, v_user_role, v_current_status
-        FROM GS_donations d
-        JOIN GS_users u ON (u.id = p_user_id)
-        WHERE d.id = p_donation_id;
-        
-        IF v_donor_id != p_user_id AND v_user_role != 'ADMIN' THEN
-            RAISE exc_business_rule;
+        -- Validações
+        IF p_title IS NULL OR TRIM(p_title) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Título é obrigatório');
         END IF;
         
-        -- Não pode excluir se já foi doada
-        IF v_current_status = 'DONATED' THEN
-            RAISE exc_business_rule;
+        IF p_location IS NULL OR TRIM(p_location) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Localização é obrigatória');
         END IF;
         
-        -- Soft delete
-        UPDATE GS_donations 
-        SET status = 'EXPIRED', updated_at = SYSTIMESTAMP
-        WHERE id = p_donation_id;
+        IF p_quantity IS NULL OR p_quantity <= 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Quantidade deve ser maior que zero');
+        END IF;
+        
+        -- Verificar se doador existe
+        SELECT COUNT(*) INTO v_count FROM GS_users WHERE id = p_donor_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Usuário doador não encontrado');
+        END IF;
+
+        -- Insert
+        INSERT INTO GS_donations (
+            title, description, location, category, quantity, unit,
+            expiry_date, donor_id, created_at, updated_at
+        ) VALUES (
+            TRIM(p_title), p_description, TRIM(p_location), p_category, p_quantity, p_unit,
+            p_expiry_date, p_donor_id, SYSTIMESTAMP, SYSTIMESTAMP
+        ) RETURNING id INTO p_donation_id;
         
         COMMIT;
         
     EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20018, 'Doação não encontrada');
-        WHEN exc_business_rule THEN
-            RAISE_APPLICATION_ERROR(-20019, 'Operação não permitida');
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END SP_INSERT_DONATION;
+
+    PROCEDURE SP_UPDATE_DONATION(
+        p_id                IN NUMBER,
+        p_title             IN VARCHAR2 DEFAULT NULL,
+        p_description       IN CLOB DEFAULT NULL,
+        p_location          IN VARCHAR2 DEFAULT NULL,
+        p_category          IN VARCHAR2 DEFAULT NULL,
+        p_status            IN VARCHAR2 DEFAULT NULL,
+        p_quantity          IN NUMBER DEFAULT NULL,
+        p_unit              IN VARCHAR2 DEFAULT NULL,
+        p_expiry_date       IN TIMESTAMP DEFAULT NULL
+    ) IS
+        v_count NUMBER;
+    BEGIN
+        -- Verificar se existe
+        SELECT COUNT(*) INTO v_count FROM GS_donations WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Doação não encontrada');
+        END IF;
+        
+        -- Validações
+        IF p_status IS NOT NULL AND p_status NOT IN ('AVAILABLE', 'RESERVED', 'DONATED', 'EXPIRED') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Status inválido');
+        END IF;
+        
+        IF p_quantity IS NOT NULL AND p_quantity <= 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Quantidade deve ser maior que zero');
+        END IF;
+
+        -- Update dinâmico
+        UPDATE GS_donations 
+        SET title = NVL(TRIM(p_title), title),
+            description = NVL(p_description, description),
+            location = NVL(TRIM(p_location), location),
+            category = NVL(p_category, category),
+            status = NVL(p_status, status),
+            quantity = NVL(p_quantity, quantity),
+            unit = NVL(p_unit, unit),
+            expiry_date = NVL(p_expiry_date, expiry_date),
+            updated_at = SYSTIMESTAMP
+        WHERE id = p_id;
+        
+        COMMIT;
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END SP_UPDATE_DONATION;
+
+    PROCEDURE SP_DELETE_DONATION(
+        p_id IN NUMBER
+    ) IS
+        v_count NUMBER;
+    BEGIN
+        -- Verificar se existe
+        SELECT COUNT(*) INTO v_count FROM GS_donations WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Doação não encontrada');
+        END IF;
+        
+        -- Verificar dependências
+        SELECT COUNT(*) INTO v_count FROM GS_matches WHERE donation_id = p_id;
+        IF v_count > 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Não é possível excluir doação com matches vinculados');
+        END IF;
+
+        DELETE FROM GS_donations WHERE id = p_id;
+        COMMIT;
+        
+    EXCEPTION
         WHEN OTHERS THEN
             ROLLBACK;
             RAISE;
     END SP_DELETE_DONATION;
 
-    -- =====================================================
-    -- FUNÇÕES DE CÁLCULO E RANKING
-    -- =====================================================
+    -- =====================================
+    -- PROCEDURES PARA MATCHES
+    -- =====================================
     
-    FUNCTION FN_CALCULATE_COMPATIBILITY_SCORE(
-        p_need_id NUMBER,
-        p_donation_id NUMBER
-    ) RETURN NUMBER IS
-        v_need_category VARCHAR2(20);
-        v_need_location VARCHAR2(255);
-        v_need_quantity NUMBER;
-        v_need_priority VARCHAR2(10);
-        v_donation_category VARCHAR2(20);
-        v_donation_location VARCHAR2(255);
-        v_donation_quantity NUMBER;
-        v_score NUMBER := 0;
-        v_location_distance NUMBER := 0;
+    PROCEDURE SP_INSERT_MATCH(
+        p_need_id               IN NUMBER,
+        p_donation_id           IN NUMBER,
+        p_matched_quantity      IN NUMBER DEFAULT NULL,
+        p_compatibility_score   IN NUMBER DEFAULT NULL,
+        p_notes                 IN CLOB DEFAULT NULL,
+        p_match_id              OUT NUMBER
+    ) IS
+        v_count NUMBER;
     BEGIN
-        -- Busca dados da necessidade
-        SELECT category, location, quantity, priority
-        INTO v_need_category, v_need_location, v_need_quantity, v_need_priority
-        FROM GS_needs
-        WHERE id = p_need_id;
-        
-        -- Busca dados da doação
-        SELECT category, location, quantity
-        INTO v_donation_category, v_donation_location, v_donation_quantity
-        FROM GS_donations
-        WHERE id = p_donation_id;
-        
-        -- Categoria compatível (40% do score)
-        IF v_need_category = v_donation_category THEN
-            v_score := v_score + 0.4;
+        -- Validações
+        IF p_matched_quantity IS NOT NULL AND p_matched_quantity <= 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Quantidade matched deve ser maior que zero');
         END IF;
         
-        -- Localização (30% do score)
-        IF UPPER(v_need_location) = UPPER(v_donation_location) THEN
-            v_score := v_score + 0.3;
-        ELSIF INSTR(UPPER(v_need_location), UPPER(SUBSTR(v_donation_location, 1, 10))) > 0 THEN
-            v_score := v_score + 0.15; -- Localização parcialmente compatível
+        IF p_compatibility_score IS NOT NULL AND (p_compatibility_score < 0 OR p_compatibility_score > 1) THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Score de compatibilidade deve estar entre 0 e 1');
         END IF;
-        
-        -- Quantidade (20% do score)
-        IF v_donation_quantity >= v_need_quantity THEN
-            v_score := v_score + 0.2;
-        ELSIF v_donation_quantity >= (v_need_quantity * 0.5) THEN
-            v_score := v_score + 0.1; -- Atende pelo menos 50%
-        END IF;
-        
-        -- Urgência (10% do score)
-        CASE v_need_priority
-            WHEN 'CRITICAL' THEN v_score := v_score + 0.1;
-            WHEN 'HIGH' THEN v_score := v_score + 0.08;
-            WHEN 'MEDIUM' THEN v_score := v_score + 0.05;
-            ELSE v_score := v_score + 0.02;
-        END CASE;
-        
-        RETURN ROUND(v_score, 2);
-        
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            RETURN 0;
-        WHEN OTHERS THEN
-            RETURN 0;
-    END FN_CALCULATE_COMPATIBILITY_SCORE;
 
-    FUNCTION FN_GET_USER_DONATION_RANKING(
-        p_user_id NUMBER
-    ) RETURN NUMBER IS
-        v_total_donations NUMBER := 0;
-        v_total_value NUMBER := 0;
-        v_recent_donations NUMBER := 0;
-        v_ranking NUMBER := 0;
-    BEGIN
-        -- Conta doações do usuário
-        SELECT COUNT(*), 
-               COUNT(CASE WHEN created_at >= SYSTIMESTAMP - 30 THEN 1 END)
-        INTO v_total_donations, v_recent_donations
-        FROM GS_donations
-        WHERE donor_id = p_user_id
-        AND status IN ('DONATED', 'RESERVED');
-        
-        -- Calcula ranking baseado em doações
-        v_ranking := (v_total_donations * 10) + (v_recent_donations * 5);
-        
-        -- Bônus para usuários muito ativos
-        IF v_total_donations > 50 THEN
-            v_ranking := v_ranking + 100;
-        ELSIF v_total_donations > 20 THEN
-            v_ranking := v_ranking + 50;
-        ELSIF v_total_donations > 10 THEN
-            v_ranking := v_ranking + 20;
-        END IF;
-        
-        RETURN v_ranking;
-        
-    EXCEPTION
-        WHEN OTHERS THEN
-            RETURN 0;
-    END FN_GET_USER_DONATION_RANKING;
-
-    FUNCTION FN_CALCULATE_URGENCY_SCORE(
-        p_need_id NUMBER
-    ) RETURN NUMBER IS
-        v_priority VARCHAR2(10);
-        v_deadline_date TIMESTAMP;
-        v_created_at TIMESTAMP;
-        v_days_until_deadline NUMBER;
-        v_days_since_created NUMBER;
-        v_urgency_score NUMBER := 0;
-    BEGIN
-        SELECT priority, deadline_date, created_at
-        INTO v_priority, v_deadline_date, v_created_at
-        FROM GS_needs
-        WHERE id = p_need_id;
-        
-        -- Score base por prioridade
-        CASE v_priority
-            WHEN 'CRITICAL' THEN v_urgency_score := 100;
-            WHEN 'HIGH' THEN v_urgency_score := 75;
-            WHEN 'MEDIUM' THEN v_urgency_score := 50;
-            WHEN 'LOW' THEN v_urgency_score := 25;
-            ELSE v_urgency_score := 10;
-        END CASE;
-        
-        -- Ajuste por prazo
-        IF v_deadline_date IS NOT NULL THEN
-            v_days_until_deadline := EXTRACT(DAY FROM (v_deadline_date - SYSTIMESTAMP));
-            
-            IF v_days_until_deadline <= 1 THEN
-                v_urgency_score := v_urgency_score + 50;
-            ELSIF v_days_until_deadline <= 3 THEN
-                v_urgency_score := v_urgency_score + 30;
-            ELSIF v_days_until_deadline <= 7 THEN
-                v_urgency_score := v_urgency_score + 15;
-            END IF;
-        END IF;
-        
-        -- Ajuste por tempo de espera
-        v_days_since_created := EXTRACT(DAY FROM (SYSTIMESTAMP - v_created_at));
-        IF v_days_since_created > 30 THEN
-            v_urgency_score := v_urgency_score + 25;
-        ELSIF v_days_since_created > 14 THEN
-            v_urgency_score := v_urgency_score + 15;
-        ELSIF v_days_since_created > 7 THEN
-            v_urgency_score := v_urgency_score + 10;
-        END IF;
-        
-        RETURN LEAST(v_urgency_score, 200); -- Máximo 200
-        
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            RETURN 0;
-        WHEN OTHERS THEN
-            RETURN 0;
-    END FN_CALCULATE_URGENCY_SCORE;
-
-    FUNCTION FN_GET_ORGANIZATION_RISK_LEVEL(
-        p_organization_id NUMBER
-    ) RETURN VARCHAR2 IS
-        v_total_needs NUMBER := 0;
-        v_fulfilled_needs NUMBER := 0;
-        v_overdue_needs NUMBER := 0;
-        v_success_rate NUMBER := 0;
-        v_risk_level VARCHAR2(10) := 'LOW';
-        v_days_active NUMBER;
-        v_created_at TIMESTAMP;
-    BEGIN
-        -- Busca data de criação da organização
-        SELECT created_at INTO v_created_at
-        FROM GS_organizations
-        WHERE id = p_organization_id;
-        
-        v_days_active := EXTRACT(DAY FROM (SYSTIMESTAMP - v_created_at));
-        
-        -- Conta necessidades por status
-        SELECT COUNT(*),
-               SUM(CASE WHEN status = 'FULFILLED' THEN 1 ELSE 0 END),
-               SUM(CASE WHEN status = 'ACTIVE' AND deadline_date < SYSTIMESTAMP THEN 1 ELSE 0 END)
-        INTO v_total_needs, v_fulfilled_needs, v_overdue_needs
-        FROM GS_needs
-        WHERE organization_id = p_organization_id;
-        
-        -- Calcula taxa de sucesso
-        IF v_total_needs > 0 THEN
-            v_success_rate := (v_fulfilled_needs / v_total_needs) * 100;
-        END IF;
-        
-        -- Determina nível de risco
-        IF v_overdue_needs > 5 OR v_success_rate < 30 THEN
-            v_risk_level := 'HIGH';
-        ELSIF v_overdue_needs > 2 OR v_success_rate < 60 THEN
-            v_risk_level := 'MEDIUM';
-        ELSIF v_days_active < 30 THEN
-            v_risk_level := 'MEDIUM'; -- Organização nova
-        ELSE
-            v_risk_level := 'LOW';
-        END IF;
-        
-        RETURN v_risk_level;
-        
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            RETURN 'UNKNOWN';
-        WHEN OTHERS THEN
-            RETURN 'ERROR';
-    END FN_GET_ORGANIZATION_RISK_LEVEL;
-
-    -- =====================================================
-    -- PROCEDURE DE MATCHING AUTOMÁTICO COM CURSOR E LOOP
-    -- =====================================================
-    
-    PROCEDURE SP_AUTO_MATCH_DONATIONS IS
-        -- Cursor para necessidades ativas
-        CURSOR c_active_needs IS
-            SELECT id, category, location, quantity, priority, creator_id
-            FROM GS_needs
-            WHERE status = 'ACTIVE'
-            AND deadline_date > SYSTIMESTAMP
-            ORDER BY 
-                CASE priority
-                    WHEN 'CRITICAL' THEN 1
-                    WHEN 'HIGH' THEN 2
-                    WHEN 'MEDIUM' THEN 3
-                    ELSE 4
-                END,
-                created_at;
-        
-        -- Cursor para doações disponíveis
-        CURSOR c_available_donations(p_category VARCHAR2, p_location VARCHAR2) IS
-            SELECT id, quantity, donor_id, location
-            FROM GS_donations
-            WHERE status = 'AVAILABLE'
-            AND category = p_category
-            AND (UPPER(location) = UPPER(p_location) 
-                 OR INSTR(UPPER(location), UPPER(SUBSTR(p_location, 1, 10))) > 0)
-            ORDER BY created_at;
-        
-        v_compatibility_score NUMBER;
-        v_matched_quantity NUMBER;
-        v_match_count NUMBER := 0;
-        v_total_processed NUMBER := 0;
-        
-    BEGIN
-        DBMS_OUTPUT.PUT_LINE('=== Iniciando Matching Automático ===');
-        
-        -- Loop através das necessidades ativas
-        FOR need_rec IN c_active_needs LOOP
-            v_total_processed := v_total_processed + 1;
-            
-            -- Bloco anônimo com controle de fluxo
-            DECLARE
-                v_need_fulfilled BOOLEAN := FALSE;
-            BEGIN
-                -- Loop através das doações compatíveis
-                FOR donation_rec IN c_available_donations(need_rec.category, need_rec.location) LOOP
-                    
-                    -- Calcula score de compatibilidade
-                    v_compatibility_score := FN_CALCULATE_COMPATIBILITY_SCORE(
-                        need_rec.id, 
-                        donation_rec.id
-                    );
-                    
-                    -- Se score é aceitável (>= 0.6), cria match
-                    IF v_compatibility_score >= 0.6 THEN
-                        v_matched_quantity := LEAST(need_rec.quantity, donation_rec.quantity);
-                        
-                        -- Insere match
-                        INSERT INTO GS_matches (
-                            need_id, donation_id, status, matched_quantity,
-                            compatibility_score, created_at, updated_at
-                        ) VALUES (
-                            need_rec.id, donation_rec.id, 'PENDING',
-                            v_matched_quantity, v_compatibility_score,
-                            SYSTIMESTAMP, SYSTIMESTAMP
-                        );
-                        
-                        -- Atualiza status da doação para reservada
-                        UPDATE GS_donations 
-                        SET status = 'RESERVED', updated_at = SYSTIMESTAMP
-                        WHERE id = donation_rec.id;
-                        
-                        v_match_count := v_match_count + 1;
-                        
-                        DBMS_OUTPUT.PUT_LINE('Match criado: Need ' || need_rec.id || 
-                                           ' <-> Donation ' || donation_rec.id ||
-                                           ' (Score: ' || v_compatibility_score || ')');
-                        
-                        -- Se doação atende completamente a necessidade
-                        IF donation_rec.quantity >= need_rec.quantity THEN
-                            UPDATE GS_needs 
-                            SET status = 'PARTIALLY_FULFILLED', updated_at = SYSTIMESTAMP
-                            WHERE id = need_rec.id;
-                            v_need_fulfilled := TRUE;
-                            EXIT; -- Sai do loop de doações
-                        END IF;
-                    END IF;
-                END LOOP;
-                
-                -- Se necessidade não foi atendida, verifica urgência
-                IF NOT v_need_fulfilled THEN
-                    DECLARE
-                        v_urgency_score NUMBER;
-                    BEGIN
-                        v_urgency_score := FN_CALCULATE_URGENCY_SCORE(need_rec.id);
-                        
-                        IF v_urgency_score > 150 THEN
-                            DBMS_OUTPUT.PUT_LINE('ALERTA: Necessidade crítica sem match - ID: ' || 
-                                               need_rec.id || ' (Urgência: ' || v_urgency_score || ')');
-                        END IF;
-                    END;
-                END IF;
-            END;
-        END LOOP;
+        -- Update dinâmico
+        UPDATE GS_matches 
+        SET status = NVL(p_status, status),
+            matched_quantity = NVL(p_matched_quantity, matched_quantity),
+            compatibility_score = NVL(p_compatibility_score, compatibility_score),
+            notes = NVL(p_notes, notes),
+            updated_at = SYSTIMESTAMP,
+            confirmed_at = CASE WHEN p_status = 'CONFIRMED' THEN SYSTIMESTAMP ELSE confirmed_at END
+        WHERE id = p_id;
         
         COMMIT;
-        
-        DBMS_OUTPUT.PUT_LINE('=== Matching Concluído ===');
-        DBMS_OUTPUT.PUT_LINE('Necessidades processadas: ' || v_total_processed);
-        DBMS_OUTPUT.PUT_LINE('Matches criados: ' || v_match_count);
         
     EXCEPTION
         WHEN OTHERS THEN
             ROLLBACK;
-            DBMS_OUTPUT.PUT_LINE('Erro no matching automático: ' || SQLERRM);
             RAISE;
-    END SP_AUTO_MATCH_DONATIONS;
+    END SP_UPDATE_MATCH;
 
-    -- =====================================================
-    -- PROCEDURES DE RELATÓRIOS COMPLEXOS
-    -- =====================================================
-    
-    PROCEDURE SP_GENERATE_MONTHLY_REPORT(
-        p_month NUMBER,
-        p_year NUMBER
+    PROCEDURE SP_DELETE_MATCH(
+        p_id IN NUMBER
     ) IS
-        CURSOR c_monthly_stats IS
-            SELECT 
-                o.name as organization_name,
-                o.type,
-                COUNT(DISTINCT n.id) as total_needs,
-                COUNT(DISTINCT CASE WHEN n.status = 'FULFILLED' THEN n.id END) as fulfilled_needs,
-                COUNT(DISTINCT d.id) as total_donations,
-                COUNT(DISTINCT CASE WHEN d.status = 'DONATED' THEN d.id END) as completed_donations,
-                COUNT(DISTINCT m.id) as total_matches,
-                ROUND(AVG(m.compatibility_score), 2) as avg_compatibility,
-                COUNT(DISTINCT u.id) as active_users
-            FROM GS_organizations o
-            LEFT JOIN GS_needs n ON o.id = n.organization_id 
-                AND EXTRACT(MONTH FROM n.created_at) = p_month
-                AND EXTRACT(YEAR FROM n.created_at) = p_year
-            LEFT JOIN GS_users u ON o.id = u.organization_id AND u.is_active = 'Y'
-            LEFT JOIN GS_donations d ON u.id = d.donor_id
-                AND EXTRACT(MONTH FROM d.created_at) = p_month
-                AND EXTRACT(YEAR FROM d.created_at) = p_year
-            LEFT JOIN GS_matches m ON (n.id = m.need_id OR d.id = m.donation_id)
-                AND EXTRACT(MONTH FROM m.created_at) = p_month
-                AND EXTRACT(YEAR FROM m.created_at) = p_year
-            GROUP BY o.id, o.name, o.type
-            HAVING COUNT(DISTINCT n.id) > 0 OR COUNT(DISTINCT d.id) > 0
-            ORDER BY total_needs DESC, completed_donations DESC;
-        
-        -- Cursor para estatísticas por categoria
-        CURSOR c_category_stats IS
-            SELECT 
-                COALESCE(n.category, d.category) as category,
-                COUNT(DISTINCT n.id) as needs_count,
-                COUNT(DISTINCT d.id) as donations_count,
-                COUNT(DISTINCT m.id) as matches_count,
-                ROUND(
-                    COUNT(DISTINCT CASE WHEN n.status = 'FULFILLED' THEN n.id END) * 100.0 / 
-                    NULLIF(COUNT(DISTINCT n.id), 0), 2
-                ) as fulfillment_rate
-            FROM GS_needs n
-            FULL OUTER JOIN GS_donations d ON n.category = d.category
-                AND EXTRACT(MONTH FROM d.created_at) = p_month
-                AND EXTRACT(YEAR FROM d.created_at) = p_year
-            LEFT JOIN GS_matches m ON (n.id = m.need_id AND d.id = m.donation_id)
-            WHERE (EXTRACT(MONTH FROM n.created_at) = p_month AND EXTRACT(YEAR FROM n.created_at) = p_year)
-               OR (EXTRACT(MONTH FROM d.created_at) = p_month AND EXTRACT(YEAR FROM d.created_at) = p_year)
-            GROUP BY COALESCE(n.category, d.category)
-            ORDER BY needs_count DESC;
-        
-        v_total_orgs NUMBER := 0;
-        v_total_users NUMBER := 0;
-        v_month_name VARCHAR2(20);
-        
+        v_count NUMBER;
     BEGIN
-        -- Define nome do mês
-        SELECT TO_CHAR(TO_DATE(p_month, 'MM'), 'Month', 'NLS_DATE_LANGUAGE=Portuguese')
-        INTO v_month_name FROM DUAL;
-        
-        DBMS_OUTPUT.PUT_LINE('=====================================');
-        DBMS_OUTPUT.PUT_LINE('RELATÓRIO MENSAL - ' || TRIM(v_month_name) || '/' || p_year);
-        DBMS_OUTPUT.PUT_LINE('=====================================');
-        DBMS_OUTPUT.PUT_LINE('');
-        
-        -- Estatísticas gerais
-        SELECT COUNT(DISTINCT o.id), COUNT(DISTINCT u.id)
-        INTO v_total_orgs, v_total_users
-        FROM GS_organizations o
-        LEFT JOIN GS_users u ON o.id = u.organization_id AND u.is_active = 'Y';
-        
-        DBMS_OUTPUT.PUT_LINE('RESUMO EXECUTIVO:');
-        DBMS_OUTPUT.PUT_LINE('- Organizações ativas: ' || v_total_orgs);
-        DBMS_OUTPUT.PUT_LINE('- Usuários ativos: ' || v_total_users);
-        DBMS_OUTPUT.PUT_LINE('');
-        
-        -- Relatório por organização
-        DBMS_OUTPUT.PUT_LINE('DESEMPENHO POR ORGANIZAÇÃO:');
-        DBMS_OUTPUT.PUT_LINE(RPAD('Organização', 30) || RPAD('Tipo', 15) || 
-                           RPAD('Necessidades', 12) || RPAD('Atendidas', 10) || 
-                           RPAD('Doações', 8) || RPAD('Matches', 8) || 'Score Médio');
-        DBMS_OUTPUT.PUT_LINE(RPAD('-', 95, '-'));
-        
-        FOR org_rec IN c_monthly_stats LOOP
-            DBMS_OUTPUT.PUT_LINE(
-                RPAD(SUBSTR(org_rec.organization_name, 1, 29), 30) ||
-                RPAD(SUBSTR(org_rec.type, 1, 14), 15) ||
-                RPAD(org_rec.total_needs, 12) ||
-                RPAD(org_rec.fulfilled_needs, 10) ||
-                RPAD(org_rec.total_donations, 8) ||
-                RPAD(org_rec.total_matches, 8) ||
-                NVL(TO_CHAR(org_rec.avg_compatibility), 'N/A')
-            );
-        END LOOP;
-        
-        DBMS_OUTPUT.PUT_LINE('');
-        DBMS_OUTPUT.PUT_LINE('ESTATÍSTICAS POR CATEGORIA:');
-        DBMS_OUTPUT.PUT_LINE(RPAD('Categoria', 15) || RPAD('Necessidades', 12) || 
-                           RPAD('Doações', 8) || RPAD('Matches', 8) || 'Taxa Atend.(%)');
-        DBMS_OUTPUT.PUT_LINE(RPAD('-', 55, '-'));
-        
-        FOR cat_rec IN c_category_stats LOOP
-            DBMS_OUTPUT.PUT_LINE(
-                RPAD(cat_rec.category, 15) ||
-                RPAD(cat_rec.needs_count, 12) ||
-                RPAD(cat_rec.donations_count, 8) ||
-                RPAD(cat_rec.matches_count, 8) ||
-                NVL(TO_CHAR(cat_rec.fulfillment_rate), '0') || '%'
-            );
-        END LOOP;
-        
-        DBMS_OUTPUT.PUT_LINE('');
-        DBMS_OUTPUT.PUT_LINE('Relatório gerado em: ' || TO_CHAR(SYSTIMESTAMP, 'DD/MM/YYYY HH24:MI:SS'));
+        -- Verificar se existe
+        SELECT COUNT(*) INTO v_count FROM GS_matches WHERE id = p_id;
+        IF v_count = 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Match não encontrado');
+        END IF;
+
+        DELETE FROM GS_matches WHERE id = p_id;
+        COMMIT;
         
     EXCEPTION
         WHEN OTHERS THEN
-            DBMS_OUTPUT.PUT_LINE('Erro ao gerar relatório: ' || SQLERRM);
-    END SP_GENERATE_MONTHLY_REPORT;
+            ROLLBACK;
+            RAISE;
+    END SP_DELETE_MATCH;
 
-    PROCEDURE SP_GENERATE_ORGANIZATION_SUMMARY(
-        p_organization_id NUMBER
+    -- =====================================
+    -- PROCEDURES PARA AUDITORIA
+    -- =====================================
+    
+    PROCEDURE SP_INSERT_AUDIT(
+        p_table_name        IN VARCHAR2,
+        p_register_id       IN NUMBER,
+        p_operation_type    IN VARCHAR2,
+        p_db_user           IN VARCHAR2,
+        p_old_data          IN CLOB DEFAULT NULL,
+        p_new_data          IN CLOB DEFAULT NULL,
+        p_audit_id          OUT NUMBER
     ) IS
-        -- Informações da organização
-        v_org_name VARCHAR2(255);
-        v_org_type VARCHAR2(20);
-        v_org_location VARCHAR2(255);
-        v_org_created TIMESTAMP;
-        v_risk_level VARCHAR2(10);
-        
-        -- Cursor para usuários da organização
-        CURSOR c_org_users IS
-            SELECT u.id, u.name, u.email, u.role, u.created_at,
-                   PKG_DONATION_SYSTEM.FN_GET_USER_DONATION_RANKING(u.id) as ranking
-            FROM GS_users u
-            WHERE u.organization_id = p_organization_id
-            AND u.is_active = 'Y'
-            ORDER BY ranking DESC, u.created_at;
-        
-        -- Cursor para necessidades críticas
-        CURSOR c_critical_needs IS
-            SELECT n.id, n.title, n.priority, n.status, n.deadline_date,
-                   PKG_DONATION_SYSTEM.FN_CALCULATE_URGENCY_SCORE(n.id) as urgency_score
-            FROM GS_needs n
-            WHERE n.organization_id = p_organization_id
-            AND n.status IN ('ACTIVE', 'PARTIALLY_FULFILLED')
-            ORDER BY urgency_score DESC, n.deadline_date;
-        
-        -- Estatísticas agregadas
-        v_total_needs NUMBER;
-        v_fulfilled_needs NUMBER;
-        v_total_donations NUMBER;
-        v_active_matches NUMBER;
-        v_success_rate NUMBER;
-        
     BEGIN
-        -- Busca informações da organização
-        SELECT name, type, location, created_at
-        INTO v_org_name, v_org_type, v_org_location, v_org_created
-        FROM GS_organizations
-        WHERE id = p_organization_id;
-        
-        -- Calcula nível de risco
-        v_risk_level := FN_GET_ORGANIZATION_RISK_LEVEL(p_organization_id);
-        
-        -- Estatísticas da organização
-        SELECT 
-            COUNT(DISTINCT n.id),
-            COUNT(DISTINCT CASE WHEN n.status = 'FULFILLED' THEN n.id END),
-            COUNT(DISTINCT d.id),
-            COUNT(DISTINCT CASE WHEN m.status IN ('PENDING', 'CONFIRMED') THEN m.id END)
-        INTO v_total_needs, v_fulfilled_needs, v_total_donations, v_active_matches
-        FROM GS_needs n
-        LEFT JOIN GS_users u ON n.organization_id = u.organization_id
-        LEFT JOIN GS_donations d ON u.id = d.donor_id
-        LEFT JOIN GS_matches m ON n.id = m.need_id
-        WHERE n.organization_id = p_organization_id;
-        
-        -- Calcula taxa de sucesso
-        IF v_total_needs > 0 THEN
-            v_success_rate := ROUND((v_fulfilled_needs / v_total_needs) * 100, 2);
-        ELSE
-            v_success_rate := 0;
+        -- Validações
+        IF p_table_name IS NULL OR TRIM(p_table_name) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Nome da tabela é obrigatório');
         END IF;
         
-        -- Cabeçalho do relatório
-        DBMS_OUTPUT.PUT_LINE('========================================');
-        DBMS_OUTPUT.PUT_LINE('RESUMO DA ORGANIZAÇÃO');
-        DBMS_OUTPUT.PUT_LINE('========================================');
-        DBMS_OUTPUT.PUT_LINE('Nome: ' || v_org_name);
-        DBMS_OUTPUT.PUT_LINE('Tipo: ' || v_org_type);
-        DBMS_OUTPUT.PUT_LINE('Localização: ' || v_org_location);
-        DBMS_OUTPUT.PUT_LINE('Criada em: ' || TO_CHAR(v_org_created, 'DD/MM/YYYY'));
-        DBMS_OUTPUT.PUT_LINE('Nível de Risco: ' || v_risk_level);
-        DBMS_OUTPUT.PUT_LINE('');
+        IF p_register_id IS NULL THEN
+            RAISE_APPLICATION_ERROR(-20001, 'ID do registro é obrigatório');
+        END IF;
         
-        -- Estatísticas principais
-        DBMS_OUTPUT.PUT_LINE('ESTATÍSTICAS PRINCIPAIS:');
-        DBMS_OUTPUT.PUT_LINE('- Total de necessidades: ' || v_total_needs);
-        DBMS_OUTPUT.PUT_LINE('- Necessidades atendidas: ' || v_fulfilled_needs);
-        DBMS_OUTPUT.PUT_LINE('- Taxa de sucesso: ' || v_success_rate || '%');
-        DBMS_OUTPUT.PUT_LINE('- Total de doações: ' || v_total_donations);
-        DBMS_OUTPUT.PUT_LINE('- Matches ativos: ' || v_active_matches);
-        DBMS_OUTPUT.PUT_LINE('');
+        IF p_operation_type IS NULL OR p_operation_type NOT IN ('INSERT', 'UPDATE', 'DELETE') THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Tipo de operação inválido');
+        END IF;
         
-        -- Lista de usuários
-        DBMS_OUTPUT.PUT_LINE('USUÁRIOS DA ORGANIZAÇÃO:');
-        DBMS_OUTPUT.PUT_LINE(RPAD('Nome', 25) || RPAD('Email', 30) || RPAD('Perfil', 12) || 'Ranking');
-        DBMS_OUTPUT.PUT_LINE(RPAD('-', 72, '-'));
+        IF p_db_user IS NULL OR TRIM(p_db_user) = '' THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Usuário do banco é obrigatório');
+        END IF;
+
+        -- Insert
+        INSERT INTO GS_auditoria (
+            table_name, register_id, operation_type, date_time,
+            db_user, old_data, new_data
+        ) VALUES (
+            UPPER(TRIM(p_table_name)), p_register_id, UPPER(p_operation_type), SYSTIMESTAMP,
+            TRIM(p_db_user), p_old_data, p_new_data
+        ) RETURNING id INTO p_audit_id;
         
-        FOR user_rec IN c_org_users LOOP
-            DBMS_OUTPUT.PUT_LINE(
-                RPAD(SUBSTR(user_rec.name, 1, 24), 25) ||
-                RPAD(SUBSTR(user_rec.email, 1, 29), 30) ||
-                RPAD(user_rec.role, 12) ||
-                user_rec.ranking
-            );
-        END LOOP;
-        
-        DBMS_OUTPUT.PUT_LINE('');
-        
-        -- Necessidades críticas
-        DBMS_OUTPUT.PUT_LINE('NECESSIDADES PRIORITÁRIAS:');
-        DBMS_OUTPUT.PUT_LINE(RPAD('ID', 5) || RPAD('Título', 30) || RPAD('Prioridade', 10) || 
-                           RPAD('Status', 18) || 'Urgência');
-        DBMS_OUTPUT.PUT_LINE(RPAD('-', 68, '-'));
-        
-        FOR need_rec IN c_critical_needs LOOP
-            EXIT WHEN c_critical_needs%ROWCOUNT > 10; -- Máximo 10 itens
-            
-            DBMS_OUTPUT.PUT_LINE(
-                RPAD(need_rec.id, 5) ||
-                RPAD(SUBSTR(need_rec.title, 1, 29), 30) ||
-                RPAD(need_rec.priority, 10) ||
-                RPAD(need_rec.status, 18) ||
-                need_rec.urgency_score
-            );
-        END LOOP;
-        
-        DBMS_OUTPUT.PUT_LINE('');
-        DBMS_OUTPUT.PUT_LINE('Relatório gerado em: ' || TO_CHAR(SYSTIMESTAMP, 'DD/MM/YYYY HH24:MI:SS'));
+        COMMIT;
         
     EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            DBMS_OUTPUT.PUT_LINE('Organização não encontrada (ID: ' || p_organization_id || ')');
         WHEN OTHERS THEN
-            DBMS_OUTPUT.PUT_LINE('Erro ao gerar resumo: ' || SQLERRM);
-    END SP_GENERATE_ORGANIZATION_SUMMARY;
+            ROLLBACK;
+            RAISE;
+    END SP_INSERT_AUDIT;
 
-END PKG_DONATION_SYSTEM;
+END PKG_GS_CRUD;
 /
 
--- =====================================================
--- TRIGGERS DE AUDITORIA
--- =====================================================
+-- ====================================
+-- EXEMPLOS DE USO DO PACKAGE
+-- ====================================
 
--- Trigger para auditoria da tabela GS_users
-CREATE OR REPLACE TRIGGER TRG_AUDIT_USERS
-    AFTER INSERT OR UPDATE OR DELETE ON GS_users
-    FOR EACH ROW
+/*
+-- Exemplo 1: Inserir uma organização
 DECLARE
-    v_operation VARCHAR2(10);
-    v_old_data CLOB;
-    v_new_data CLOB;
+    v_org_id NUMBER;
 BEGIN
-    -- Determina o tipo de operação
-    IF INSERTING THEN
-        v_operation := 'INSERT';
-        v_new_data := 'ID:' || :NEW.id || '|EMAIL:' || :NEW.email || '|NAME:' || :NEW.name || 
-                      '|ROLE:' || :NEW.role || '|ACTIVE:' || :NEW.is_active;
-    ELSIF UPDATING THEN
-        v_operation := 'UPDATE';
-        v_old_data := 'ID:' || :OLD.id || '|EMAIL:' || :OLD.email || '|NAME:' || :OLD.name || 
-                      '|ROLE:' || :OLD.role || '|ACTIVE:' || :OLD.is_active;
-        v_new_data := 'ID:' || :NEW.id || '|EMAIL:' || :NEW.email || '|NAME:' || :NEW.name || 
-                      '|ROLE:' || :NEW.role || '|ACTIVE:' || :NEW.is_active;
-    ELSIF DELETING THEN
-        v_operation := 'DELETE';
-        v_old_data := 'ID:' || :OLD.id || '|EMAIL:' || :OLD.email || '|NAME:' || :OLD.name || 
-                      '|ROLE:' || :OLD.role || '|ACTIVE:' || :OLD.is_active;
-    END IF;
-    
-    -- Insere registro de auditoria
-    INSERT INTO GS_auditoria (
-        table_name, register_id, operation_type, date_time, 
-        db_user, old_data, new_data
-    ) VALUES (
-        'GS_USERS', 
-        COALESCE(:NEW.id, :OLD.id), 
-        v_operation, 
-        SYSTIMESTAMP,
-        USER, 
-        v_old_data, 
-        v_new_data
+    PKG_GS_CRUD.SP_INSERT_ORGANIZATION(
+        p_name => 'ONG Esperança',
+        p_description => 'Organização focada em ajuda humanitária',
+        p_location => 'São Paulo, SP',
+        p_contact_email => 'contato@esperanca.org.br',
+        p_contact_phone => '(11) 1234-5678',
+        p_type => 'NGO',
+        p_organization_id => v_org_id
     );
+    DBMS_OUTPUT.PUT_LINE('Organização criada com ID: ' || v_org_id);
 END;
 /
 
--- Trigger para auditoria da tabela GS_needs
-CREATE OR REPLACE TRIGGER TRG_AUDIT_NEEDS
-    AFTER INSERT OR UPDATE OR DELETE ON GS_needs
-    FOR EACH ROW
+-- Exemplo 2: Inserir um usuário
 DECLARE
-    v_operation VARCHAR2(10);
-    v_old_data CLOB;
-    v_new_data CLOB;
+    v_user_id NUMBER;
 BEGIN
-    IF INSERTING THEN
-        v_operation := 'INSERT';
-        v_new_data := 'ID:' || :NEW.id || '|TITLE:' || :NEW.title || '|CATEGORY:' || :NEW.category || 
-                      '|PRIORITY:' || :NEW.priority || '|STATUS:' || :NEW.status || '|QTY:' || :NEW.quantity;
-    ELSIF UPDATING THEN
-        v_operation := 'UPDATE';
-        v_old_data := 'ID:' || :OLD.id || '|TITLE:' || :OLD.title || '|CATEGORY:' || :OLD.category || 
-                      '|PRIORITY:' || :OLD.priority || '|STATUS:' || :OLD.status || '|QTY:' || :OLD.quantity;
-        v_new_data := 'ID:' || :NEW.id || '|TITLE:' || :NEW.title || '|CATEGORY:' || :NEW.category || 
-                      '|PRIORITY:' || :NEW.priority || '|STATUS:' || :NEW.status || '|QTY:' || :NEW.quantity;
-    ELSIF DELETING THEN
-        v_operation := 'DELETE';
-        v_old_data := 'ID:' || :OLD.id || '|TITLE:' || :OLD.title || '|CATEGORY:' || :OLD.category || 
-                      '|PRIORITY:' || :OLD.priority || '|STATUS:' || :OLD.status || '|QTY:' || :OLD.quantity;
-    END IF;
-    
-    INSERT INTO GS_auditoria (
-        table_name, register_id, operation_type, date_time, 
-        db_user, old_data, new_data
-    ) VALUES (
-        'GS_NEEDS', 
-        COALESCE(:NEW.id, :OLD.id), 
-        v_operation, 
-        SYSTIMESTAMP,
-        USER, 
-        v_old_data, 
-        v_new_data
+    PKG_GS_CRUD.SP_INSERT_USER(
+        p_email => 'joao@exemplo.com',
+        p_phone => '(11) 9876-5432',
+        p_name => 'João Silva',
+        p_role => 'DONOR',
+        p_organization_id => 1,
+        p_user_id => v_user_id
     );
+    DBMS_OUTPUT.PUT_LINE('Usuário criado com ID: ' || v_user_id);
 END;
 /
 
--- Trigger para auditoria da tabela GS_donations
-CREATE OR REPLACE TRIGGER TRG_AUDIT_DONATIONS
-    AFTER INSERT OR UPDATE OR DELETE ON GS_donations
-    FOR EACH ROW
+-- Exemplo 3: Inserir uma necessidade
 DECLARE
-    v_operation VARCHAR2(10);
-    v_old_data CLOB;
-    v_new_data CLOB;
+    v_need_id NUMBER;
 BEGIN
-    IF INSERTING THEN
-        v_operation := 'INSERT';
-        v_new_data := 'ID:' || :NEW.id || '|TITLE:' || :NEW.title || '|CATEGORY:' || :NEW.category || 
-                      '|STATUS:' || :NEW.status || '|QTY:' || :NEW.quantity || '|DONOR:' || :NEW.donor_id;
-    ELSIF UPDATING THEN
-        v_operation := 'UPDATE';
-        v_old_data := 'ID:' || :OLD.id || '|TITLE:' || :OLD.title || '|CATEGORY:' || :OLD.category || 
-                      '|STATUS:' || :OLD.status || '|QTY:' || :OLD.quantity || '|DONOR:' || :OLD.donor_id;
-        v_new_data := 'ID:' || :NEW.id || '|TITLE:' || :NEW.title || '|CATEGORY:' || :NEW.category || 
-                      '|STATUS:' || :NEW.status || '|QTY:' || :NEW.quantity || '|DONOR:' || :NEW.donor_id;
-    ELSIF DELETING THEN
-        v_operation := 'DELETE';
-        v_old_data := 'ID:' || :OLD.id || '|TITLE:' || :OLD.title || '|CATEGORY:' || :OLD.category || 
-                      '|STATUS:' || :OLD.status || '|QTY:' || :OLD.quantity || '|DONOR:' || :OLD.donor_id;
-    END IF;
-    
-    INSERT INTO GS_auditoria (
-        table_name, register_id, operation_type, date_time, 
-        db_user, old_data, new_data
-    ) VALUES (
-        'GS_DONATIONS', 
-        COALESCE(:NEW.id, :OLD.id), 
-        v_operation, 
-        SYSTIMESTAMP,
-        USER, 
-        v_old_data, 
-        v_new_data
+    PKG_GS_CRUD.SP_INSERT_NEED(
+        p_title => 'Cestas Básicas Urgente',
+        p_description => 'Necessitamos de cestas básicas para famílias carentes',
+        p_location => 'São Paulo, SP - Zona Leste',
+        p_category => 'FOOD',
+        p_priority => 'HIGH',
+        p_quantity => 50,
+        p_unit => 'cestas',
+        p_deadline_date => SYSTIMESTAMP + INTERVAL '30' DAY,
+        p_creator_id => 1,
+        p_organization_id => 1,
+        p_need_id => v_need_id
     );
+    DBMS_OUTPUT.PUT_LINE('Necessidade criada com ID: ' || v_need_id);
 END;
 /
 
--- Trigger para auditoria da tabela GS_matches
-CREATE OR REPLACE TRIGGER TRG_AUDIT_MATCHES
-    AFTER INSERT OR UPDATE OR DELETE ON GS_matches
-    FOR EACH ROW
+-- Exemplo 4: Inserir uma doação
 DECLARE
-    v_operation VARCHAR2(10);
-    v_old_data CLOB;
-    v_new_data CLOB;
+    v_donation_id NUMBER;
 BEGIN
-    IF INSERTING THEN
-        v_operation := 'INSERT';
-        v_new_data := 'ID:' || :NEW.id || '|NEED_ID:' || :NEW.need_id || '|DONATION_ID:' || :NEW.donation_id || 
-                      '|STATUS:' || :NEW.status || '|QTY:' || :NEW.matched_quantity || '|SCORE:' || :NEW.compatibility_score;
-    ELSIF UPDATING THEN
-        v_operation := 'UPDATE';
-        v_old_data := 'ID:' || :OLD.id || '|NEED_ID:' || :OLD.need_id || '|DONATION_ID:' || :OLD.donation_id || 
-                      '|STATUS:' || :OLD.status || '|QTY:' || :OLD.matched_quantity || '|SCORE:' || :OLD.compatibility_score;
-        v_new_data := 'ID:' || :NEW.id || '|NEED_ID:' || :NEW.need_id || '|DONATION_ID:' || :NEW.donation_id || 
-                      '|STATUS:' || :NEW.status || '|QTY:' || :NEW.matched_quantity || '|SCORE:' || :NEW.compatibility_score;
-    ELSIF DELETING THEN
-        v_operation := 'DELETE';
-        v_old_data := 'ID:' || :OLD.id || '|NEED_ID:' || :OLD.need_id || '|DONATION_ID:' || :OLD.donation_id || 
-                      '|STATUS:' || :OLD.status || '|QTY:' || :OLD.matched_quantity || '|SCORE:' || :OLD.compatibility_score;
-    END IF;
-    
-    INSERT INTO GS_auditoria (
-        table_name, register_id, operation_type, date_time, 
-        db_user, old_data, new_data
-    ) VALUES (
-        'GS_MATCHES', 
-        COALESCE(:NEW.id, :OLD.id), 
-        v_operation, 
-        SYSTIMESTAMP,
-        USER, 
-        v_old_data, 
-        v_new_data
+    PKG_GS_CRUD.SP_INSERT_DONATION(
+        p_title => 'Doação de Alimentos',
+        p_description => 'Alimentos não perecíveis disponíveis para doação',
+        p_location => 'São Paulo, SP - Centro',
+        p_category => 'FOOD',
+        p_quantity => 30,
+        p_unit => 'cestas',
+        p_expiry_date => SYSTIMESTAMP + INTERVAL '60' DAY,
+        p_donor_id => 1,
+        p_donation_id => v_donation_id
     );
+    DBMS_OUTPUT.PUT_LINE('Doação criada com ID: ' || v_donation_id);
 END;
 /
 
--- =====================================================
--- TRIGGERS DE VALIDAÇÃO E REGRAS DE NEGÓCIO
--- =====================================================
-
--- Trigger para validação automática de necessidades
-CREATE OR REPLACE TRIGGER TRG_VALIDATE_NEEDS
-    BEFORE INSERT OR UPDATE ON GS_needs
-    FOR EACH ROW
+-- Exemplo 5: Criar um match
 DECLARE
-    v_user_role VARCHAR2(20);
-    v_org_active NUMBER;
+    v_match_id NUMBER;
 BEGIN
-    -- Valida se usuário pode criar necessidades
-    SELECT role INTO v_user_role 
-    FROM GS_users 
-    WHERE id = :NEW.creator_id AND is_active = 'Y';
-    
-    IF v_user_role NOT IN ('NGO_MEMBER', 'ADMIN') THEN
-        RAISE_APPLICATION_ERROR(-20100, 'Apenas membros de ONG podem criar necessidades');
-    END IF;
-    
-    -- Valida deadline
-    IF :NEW.deadline_date IS NOT NULL AND :NEW.deadline_date <= SYSTIMESTAMP THEN
-        RAISE_APPLICATION_ERROR(-20101, 'Data limite deve ser futura');
-    END IF;
-    
-    -- Valida prioridade vs prazo
-    IF :NEW.priority = 'CRITICAL' AND :NEW.deadline_date > SYSTIMESTAMP + 7 THEN
-        RAISE_APPLICATION_ERROR(-20102, 'Necessidade crítica deve ter prazo máximo de 7 dias');
-    END IF;
-    
-    -- Atualiza timestamp
-    :NEW.updated_at := SYSTIMESTAMP;
-    
+    PKG_GS_CRUD.SP_INSERT_MATCH(
+        p_need_id => 1,
+        p_donation_id => 1,
+        p_matched_quantity => 25,
+        p_compatibility_score => 0.85,
+        p_notes => 'Match criado automaticamente pelo sistema',
+        p_match_id => v_match_id
+    );
+    DBMS_OUTPUT.PUT_LINE('Match criado com ID: ' || v_match_id);
+END;
+/
+
+-- Exemplo 6: Atualizar status de um match
+BEGIN
+    PKG_GS_CRUD.SP_UPDATE_MATCH(
+        p_id => 1,
+        p_status => 'CONFIRMED',
+        p_notes => 'Match confirmado pelas partes'
+    );
+    DBMS_OUTPUT.PUT_LINE('Match atualizado com sucesso');
+END;
+/
+
+-- Exemplo 7: Inserir registro de auditoria
+DECLARE
+    v_audit_id NUMBER;
+BEGIN
+    PKG_GS_CRUD.SP_INSERT_AUDIT(
+        p_table_name => 'GS_MATCHES',
+        p_register_id => 1,
+        p_operation_type => 'UPDATE',
+        p_db_user => USER,
+        p_old_data => '{"status":"PENDING"}',
+        p_new_data => '{"status":"CONFIRMED"}',
+        p_audit_id => v_audit_id
+    );
+    DBMS_OUTPUT.PUT_LINE('Auditoria criada com ID: ' || v_audit_id);
+END;
+/
+
+-- Exemplo 8: Tratamento de erro
+BEGIN
+    PKG_GS_CRUD.SP_DELETE_USER(999); -- ID inexistente
 EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RAISE_APPLICATION_ERROR(-20103, 'Usuário não encontrado ou inativo');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro: ' || SQLERRM);
 END;
 /
-
--- Trigger para validação de doações
-CREATE OR REPLACE TRIGGER TRG_VALIDATE_DONATIONS
-    BEFORE INSERT OR UPDATE ON GS_donations
-    FOR EACH ROW
-DECLARE
-    v_user_active CHAR(1);
-BEGIN
-    -- Valida se usuário está ativo
-    SELECT is_active INTO v_user_active 
-    FROM GS_users 
-    WHERE id = :NEW.donor_id;
-    
-    IF v_user_active = 'N' THEN
-        RAISE_APPLICATION_ERROR(-20104, 'Usuário inativo não pode fazer doações');
-    END IF;
-    
-    -- Valida data de validade
-    IF :NEW.expiry_date IS NOT NULL AND :NEW.expiry_date <= SYSTIMESTAMP THEN
-        RAISE_APPLICATION_ERROR(-20105, 'Data de validade deve ser futura');
-    END IF;
-    
-    -- Auto-expira doações vencidas
-    IF :NEW.expiry_date < SYSTIMESTAMP AND :NEW.status = 'AVAILABLE' THEN
-        :NEW.status := 'EXPIRED';
-    END IF;
-    
-    -- Atualiza timestamp
-    :NEW.updated_at := SYSTIMESTAMP;
-    
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RAISE_APPLICATION_ERROR(-20106, 'Doador não encontrado');
-END;
-/
+*/
