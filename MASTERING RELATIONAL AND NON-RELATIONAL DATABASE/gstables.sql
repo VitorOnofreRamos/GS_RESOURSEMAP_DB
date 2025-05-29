@@ -40,7 +40,7 @@ CREATE TABLE GS_users (
     email               VARCHAR2(255) UNIQUE NOT NULL,
     phone               VARCHAR2(20),
     name                VARCHAR2(255) NOT NULL,
-    password            VARCHAR2(255),
+    password_hash       VARCHAR2(255),
     role                VARCHAR2(20), -- DONOR, NGO_MENBER, ADMIN 
     is_active           CHAR(1) DEFAULT 'Y',
     last_login          TIMESTAMP,
