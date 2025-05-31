@@ -98,7 +98,7 @@ CREATE TABLE GS_matches(
     donation_id         NUMBER NOT NULL,
     status              VARCHAR(20), -- PENDING, CONFIRMED, COMPLETED, REJECTED, CANCELLED
     matched_quantity    NUMBER,
-    compatibility_score NUMBER(3,2), -- Decimal 0.00 - 1.00
+    compatibility_score NUMBER(3), -- Decimal 0 - 100
     created_at          TIMESTAMP,
     updated_at          TIMESTAMP,
     confirmed_at        TIMESTAMP,
@@ -107,7 +107,7 @@ CREATE TABLE GS_matches(
     FOREIGN KEY (donation_id) REFERENCES GS_donations(id),
     CONSTRAINT chk_matches_status CHECK (status IN ('PENDING', 'CONFIRMED', 'COMPLETED', 'REJECTED', 'CANCELLED')),
     CONSTRAINT chk_matches_quantity CHECK (matched_quantity > 0),
-    CONSTRAINT chk_compatibility_score CHECK (compatibility_score BETWEEN 0 AND 1)
+    CONSTRAINT chk_compatibility_score CHECK (compatibility_score BETWEEN 0 AND 100)
 );
 
 CREATE TABLE GS_auditoria(

@@ -4,6 +4,10 @@
 CREATE OR REPLACE PACKAGE GS_MANAGEMENT_PKG AS
 
     -- ==============================================
+    -- CRUD PROCEDURES
+    -- ==============================================
+
+    -- ==============================================
     -- ORGANIZATIONS PROCEDURES
     -- ==============================================
     
@@ -156,6 +160,7 @@ CREATE OR REPLACE PACKAGE GS_MANAGEMENT_PKG AS
     
     -- Delete Match
     PROCEDURE DELETE_MATCH(p_id GS_matches.id%TYPE);    
+    
     
 END GS_MANAGEMENT_PKG;
 /
@@ -822,8 +827,8 @@ CREATE OR REPLACE PACKAGE BODY GS_MANAGEMENT_PKG AS
         
         -- Validar score de compatibilidade se fornecido
         IF p_compatibility_score IS NOT NULL THEN
-            IF p_compatibility_score < 0 OR p_compatibility_score > 1 THEN
-                RAISE_APPLICATION_ERROR(-20409, 'Score de compatibilidade deve estar entre 0 e 1');
+            IF p_compatibility_score < 0 OR p_compatibility_score > 100 THEN
+                RAISE_APPLICATION_ERROR(-20409, 'Score de compatibilidade deve estar entre 0 e 100');
             END IF;
         END IF;
         
@@ -902,8 +907,8 @@ CREATE OR REPLACE PACKAGE BODY GS_MANAGEMENT_PKG AS
         
         -- Validar score de compatibilidade se fornecido
         IF p_compatibility_score IS NOT NULL THEN
-            IF p_compatibility_score < 0 OR p_compatibility_score > 1 THEN
-                RAISE_APPLICATION_ERROR(-20409, 'Score de compatibilidade deve estar entre 0 e 1');
+            IF p_compatibility_score < 0 OR p_compatibility_score > 100 THEN
+                RAISE_APPLICATION_ERROR(-20409, 'Score de compatibilidade deve estar entre 0 e 100');
             END IF;
         END IF;
         
