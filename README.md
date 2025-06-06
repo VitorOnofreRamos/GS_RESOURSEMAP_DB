@@ -169,7 +169,7 @@ CREATE TABLE GS_auditoria(
 
 ### Diagrama de Relacionamento
 
-![Alt text](path/to/image.png)
+![Modelo de Relacionamento](Model/gsreoursemapdbmodel.PNG)
 
 ### Relacionamentos Detalhados
 
