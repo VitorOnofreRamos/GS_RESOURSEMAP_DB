@@ -13,6 +13,22 @@ O banco de dados do **ResourceMap** foi projetado para suportar uma plataforma d
 - **Triggers de Timestamp**: Atualização automática de `updated_at`
 - **Package PL/SQL**: Funcionalidades avançadas de CRUD e relatórios
 
+## 🖥 Como Excutar
+
+### 1. Clone o repositório:
+```bash
+git clone https://github.com/VitorOnofreRamos/GS_RESOURSEMAP_DB.git
+cd Data-Base-Odontoprev/Banco_Challenge
+```
+
+### 2. Conecte-se ao Oracle Database
+Realiae sua conexão com o Oracle Database
+
+### 3. Execute os scripts na seguinte ordem:
+1. `gsinsert.sql` → Criação das tabelas e reset do banco.
+2. `gstrigger.sql` → Triggers para ter processo de Auditoria.
+3. `gspkg.sql` → Package com toda a lógica de Procedures e Funções de Consulta.
+
 ## 📊 Estrutura das Tabelas
 
 ### 1. **GS_organizations** - Organizações Humanitárias
