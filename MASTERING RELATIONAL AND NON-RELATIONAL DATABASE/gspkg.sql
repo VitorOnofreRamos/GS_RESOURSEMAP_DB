@@ -2,6 +2,51 @@
 -- PACKAGE SPECIFICATION
 -- =====================================================
 CREATE OR REPLACE PACKAGE GS_MANAGEMENT_PKG AS
+    -- ==============================================
+    -- CURSOR TYPES
+    -- ==============================================
+    
+    -- Type para cursor de estatísticas de organizações
+    TYPE t_org_stats IS RECORD (
+        org_id          NUMBER,
+        org_name        VARCHAR2(255),
+        org_type        VARCHAR2(20),
+        total_users     NUMBER,
+        total_needs     NUMBER,
+        total_matches   NUMBER,
+        avg_compatibility NUMBER(5,2)
+    );
+    
+    TYPE c_org_stats IS REF CURSOR RETURN t_org_stats;
+    
+    -- Type para cursor de relatório de doações por categoria
+    TYPE t_donation_report IS RECORD (
+        category        VARCHAR2(20),
+        total_donations NUMBER,
+        total_quantity  NUMBER,
+        available_qty   NUMBER,
+        donated_qty     NUMBER,
+        avg_quantity    NUMBER(10,2)
+    );
+    
+    TYPE c_donation_report IS REF CURSOR RETURN t_donation_report;
+    
+    -- ==============================================
+    -- MAIN FUNCTIONS
+    -- ==============================================
+    
+    FUNCTION get_total_active_needs RETURN NUMBER;
+    FUNCTION get_organization_efficiency(p_org_id NUMBER) RETURN NUMBER;
+    FUNCTION get_category_demand_level(p_category VARCHAR2) RETURN VARCHAR2;
+    
+    -- ==============================================
+    -- REPORTING PROCEDURES
+    -- ==============================================
+    
+    PROCEDURE generate_organization_report(p_org_cursor OUT c_org_stats);
+    PROCEDURE generate_donation_summary(p_donation_cursor OUT c_donation_report);
+    PROCEDURE generate_matching_efficiency_report;
+    PROCEDURE generate_monthly_activity_report(p_year NUMBER, p_month NUMBER);
 
     -- ==============================================
     -- CRUD PROCEDURES
@@ -169,6 +214,345 @@ END GS_MANAGEMENT_PKG;
 -- PACKAGE BODY
 -- =====================================================
 CREATE OR REPLACE PACKAGE BODY GS_MANAGEMENT_PKG AS
+
+    -- =====================================================
+    -- FUNÇÃO: Retorna total de necessidades ativas
+    -- =====================================================
+
+    FUNCTION get_total_active_needs RETURN NUMBER IS
+        v_total NUMBER;
+    BEGIN
+        SELECT COUNT(*)
+        INTO v_total
+        FROM GS_needs
+        WHERE status = 'ACTIVE';
+        
+        RETURN v_total;
+    EXCEPTION
+        WHEN OTHERS THEN
+            RETURN 0;
+    END get_total_active_needs;
+    
+    -- =====================================================
+    -- FUNÇÃO: Calcula eficiência da organização (% de matches confirmados)
+    -- =====================================================
+    FUNCTION get_organization_efficiency(p_org_id NUMBER) RETURN NUMBER IS
+        v_total_matches NUMBER;
+        v_confirmed_matches NUMBER;
+        v_efficiency NUMBER(5,2);
+    BEGIN
+        -- Contar total de matches relacionados à organização
+        SELECT COUNT(*)
+        INTO v_total_matches
+        FROM GS_matches m
+        INNER JOIN GS_needs n ON m.need_id = n.id
+        WHERE n.organization_id = p_org_id;
+        
+        IF v_total_matches = 0 THEN
+            RETURN 0;
+        END IF;
+        
+        -- Contar matches confirmados ou completados
+        SELECT COUNT(*)
+        INTO v_confirmed_matches
+        FROM GS_matches m
+        INNER JOIN GS_needs n ON m.need_id = n.id
+        WHERE n.organization_id = p_org_id
+        AND m.status IN ('CONFIRMED', 'COMPLETED');
+        
+        v_efficiency := (v_confirmed_matches / v_total_matches) * 100;
+        
+        RETURN v_efficiency;
+    EXCEPTION
+        WHEN OTHERS THEN
+            RETURN 0;
+    END get_organization_efficiency;
+    
+    -- =====================================================
+    -- FUNÇÃO: Determina nível de demanda por categoria
+    -- =====================================================
+    FUNCTION get_category_demand_level(p_category VARCHAR2) RETURN VARCHAR2 IS
+        v_active_needs NUMBER;
+        v_available_donations NUMBER;
+        v_demand_level VARCHAR2(20);
+    BEGIN
+        -- Contar necessidades ativas da categoria
+        SELECT COUNT(*)
+        INTO v_active_needs
+        FROM GS_needs
+        WHERE category = p_category
+        AND status = 'ACTIVE';
+        
+        -- Contar doações disponíveis da categoria
+        SELECT COUNT(*)
+        INTO v_available_donations
+        FROM GS_donations
+        WHERE category = p_category
+        AND status = 'AVAILABLE';
+        
+        -- Determinar nível de demanda usando IF/ELSE
+        IF v_active_needs = 0 THEN
+            v_demand_level := 'SEM_DEMANDA';
+        ELSIF v_available_donations = 0 THEN
+            v_demand_level := 'CRITICA';
+        ELSIF v_active_needs > (v_available_donations * 2) THEN
+            v_demand_level := 'ALTA';
+        ELSIF v_active_needs > v_available_donations THEN
+            v_demand_level := 'MEDIA';
+        ELSE
+            v_demand_level := 'BAIXA';
+        END IF;
+        
+        RETURN v_demand_level;
+    EXCEPTION
+        WHEN OTHERS THEN
+            RETURN 'ERRO';
+    END get_category_demand_level;
+    
+    -- =====================================================
+    -- PROCEDIMENTO: Relatório de estatísticas por organização
+    -- =====================================================
+    PROCEDURE generate_organization_report(p_org_cursor OUT c_org_stats) IS
+    BEGIN
+        OPEN p_org_cursor FOR
+            SELECT 
+                o.id as org_id,
+                o.name as org_name,
+                o.type as org_type,
+                COUNT(DISTINCT u.id) as total_users,
+                COUNT(DISTINCT n.id) as total_needs,
+                COUNT(DISTINCT m.id) as total_matches,
+                ROUND(AVG(m.compatibility_score), 2) as avg_compatibility
+            FROM GS_organizations o
+            LEFT JOIN GS_users u ON o.id = u.organization_id
+            LEFT JOIN GS_needs n ON o.id = n.organization_id
+            LEFT JOIN GS_matches m ON n.id = m.need_id
+            GROUP BY o.id, o.name, o.type
+            ORDER BY total_matches DESC, avg_compatibility DESC;
+            
+        DBMS_OUTPUT.PUT_LINE('Relatório de organizações gerado com sucesso.');
+    END generate_organization_report;
+    
+    -- =====================================================
+    -- PROCEDIMENTO: Relatório de doações por categoria
+    -- =====================================================
+    PROCEDURE generate_donation_summary(p_donation_cursor OUT c_donation_report) IS
+    BEGIN
+        OPEN p_donation_cursor FOR
+            SELECT 
+                COALESCE(category, 'SEM_CATEGORIA') as category,
+                COUNT(*) as total_donations,
+                SUM(quantity) as total_quantity,
+                SUM(CASE WHEN status = 'AVAILABLE' THEN quantity ELSE 0 END) as available_qty,
+                SUM(CASE WHEN status = 'DONATED' THEN quantity ELSE 0 END) as donated_qty,
+                ROUND(AVG(quantity), 2) as avg_quantity
+            FROM GS_donations
+            GROUP BY category
+            ORDER BY total_quantity DESC;
+            
+        DBMS_OUTPUT.PUT_LINE('Relatório de doações por categoria gerado com sucesso.');
+    END generate_donation_summary;
+    
+    -- =====================================================
+    -- PROCEDIMENTO: Relatório de eficiência de matching
+    -- =====================================================
+    PROCEDURE generate_matching_efficiency_report IS
+        CURSOR c_efficiency IS
+            SELECT 
+                n.category,
+                COUNT(*) as total_matches,
+                COUNT(CASE WHEN m.status = 'COMPLETED' THEN 1 END) as completed_matches,
+                COUNT(CASE WHEN m.status = 'PENDING' THEN 1 END) as pending_matches,
+                COUNT(CASE WHEN m.status = 'REJECTED' THEN 1 END) as rejected_matches,
+                ROUND(AVG(m.compatibility_score), 2) as avg_score,
+                MAX(m.compatibility_score) as max_score,
+                MIN(m.compatibility_score) as min_score
+            FROM GS_matches m
+            INNER JOIN GS_needs n ON m.need_id = n.id
+            WHERE m.compatibility_score IS NOT NULL
+            GROUP BY n.category
+            ORDER BY avg_score DESC;
+            
+        v_category VARCHAR2(20);
+        v_total NUMBER;
+        v_completed NUMBER;
+        v_pending NUMBER;
+        v_rejected NUMBER;
+        v_avg_score NUMBER(5,2);
+        v_max_score NUMBER;
+        v_min_score NUMBER;
+        v_efficiency_rate NUMBER(5,2);
+        v_status VARCHAR2(20);
+    BEGIN
+        DBMS_OUTPUT.PUT_LINE('=== RELATÓRIO DE EFICIÊNCIA DE MATCHING ===');
+        DBMS_OUTPUT.PUT_LINE('Data: ' || TO_CHAR(SYSDATE, 'DD/MM/YYYY HH24:MI:SS'));
+        DBMS_OUTPUT.PUT_LINE(' ');
+        
+        -- Cabeçalho
+        DBMS_OUTPUT.PUT_LINE('CATEGORIA        | TOTAL | COMPL | PEND | REJ | EFIC% | SCORE(AVG/MAX/MIN) | STATUS');
+        DBMS_OUTPUT.PUT_LINE('-----------------------------------------------------------------------------');
+        
+        -- Processar cursor com bloco anônimo
+        FOR rec IN c_efficiency LOOP
+            v_category := rec.category;
+            v_total := rec.total_matches;
+            v_completed := rec.completed_matches;
+            v_pending := rec.pending_matches;
+            v_rejected := rec.rejected_matches;
+            v_avg_score := rec.avg_score;
+            v_max_score := rec.max_score;
+            v_min_score := rec.min_score;
+            
+            -- Calcular taxa de eficiência
+            IF v_total > 0 THEN
+                v_efficiency_rate := (v_completed / v_total) * 100;
+            ELSE
+                v_efficiency_rate := 0;
+            END IF;
+            
+            -- Determinar status da categoria usando IF/ELSE
+            IF v_efficiency_rate >= 80 THEN
+                v_status := 'EXCELENTE';
+            ELSIF v_efficiency_rate >= 60 THEN
+                v_status := 'BOM';
+            ELSIF v_efficiency_rate >= 40 THEN
+                v_status := 'REGULAR';
+            ELSE
+                v_status := 'BAIXO';
+            END IF;
+            
+            -- Exibir linha do relatório
+            DBMS_OUTPUT.PUT_LINE(
+                RPAD(NVL(v_category, 'N/A'), 16) || ' | ' ||
+                LPAD(v_total, 5) || ' | ' ||
+                LPAD(v_completed, 5) || ' | ' ||
+                LPAD(v_pending, 4) || ' | ' ||
+                LPAD(v_rejected, 3) || ' | ' ||
+                LPAD(TO_CHAR(v_efficiency_rate, '99.9'), 5) || ' | ' ||
+                LPAD(v_avg_score, 3) || '/' || 
+                LPAD(v_max_score, 3) || '/' || 
+                LPAD(v_min_score, 3) || '     | ' ||
+                v_status
+            );
+        END LOOP;
+        
+        DBMS_OUTPUT.PUT_LINE(' ');
+        DBMS_OUTPUT.PUT_LINE('=== RESUMO GERAL ===');
+        
+        -- Bloco anônimo para estatísticas gerais
+        DECLARE
+            v_total_needs NUMBER;
+            v_total_donations NUMBER;
+            v_total_matches NUMBER;
+            v_global_avg_score NUMBER(5,2);
+        BEGIN
+            SELECT COUNT(*) INTO v_total_needs FROM GS_needs WHERE status = 'ACTIVE';
+            SELECT COUNT(*) INTO v_total_donations FROM GS_donations WHERE status = 'AVAILABLE';
+            SELECT COUNT(*), AVG(compatibility_score) 
+            INTO v_total_matches, v_global_avg_score 
+            FROM GS_matches 
+            WHERE compatibility_score IS NOT NULL;
+            
+            DBMS_OUTPUT.PUT_LINE('Total de necessidades ativas: ' || v_total_needs);
+            DBMS_OUTPUT.PUT_LINE('Total de doações disponíveis: ' || v_total_donations);
+            DBMS_OUTPUT.PUT_LINE('Total de matches: ' || v_total_matches);
+            DBMS_OUTPUT.PUT_LINE('Score médio global: ' || TO_CHAR(v_global_avg_score, '999.99'));
+            
+            -- Análise da situação geral
+            IF v_total_needs > v_total_donations THEN
+                DBMS_OUTPUT.PUT_LINE('SITUAÇÃO: Demanda maior que oferta - Faltam doações');
+            ELSIF v_total_donations > v_total_needs THEN
+                DBMS_OUTPUT.PUT_LINE('SITUAÇÃO: Oferta maior que demanda - Excesso de doações');
+            ELSE
+                DBMS_OUTPUT.PUT_LINE('SITUAÇÃO: Oferta e demanda equilibradas');
+            END IF;
+        END;
+        
+    END generate_matching_efficiency_report;
+    
+    -- =====================================================
+    -- PROCEDIMENTO: Relatório de atividade mensal
+    -- =====================================================
+    PROCEDURE generate_monthly_activity_report(p_year NUMBER, p_month NUMBER) IS
+        CURSOR c_monthly_stats IS
+            SELECT 
+                'NECESSIDADES' as tipo,
+                COUNT(*) as total,
+                COUNT(CASE WHEN status = 'ACTIVE' THEN 1 END) as ativas,
+                COUNT(CASE WHEN status = 'FULFILLED' THEN 1 END) as atendidas
+            FROM GS_needs 
+            WHERE EXTRACT(YEAR FROM created_at) = p_year 
+            AND EXTRACT(MONTH FROM created_at) = p_month
+            UNION ALL
+            SELECT 
+                'DOAÇÕES' as tipo,
+                COUNT(*) as total,
+                COUNT(CASE WHEN status = 'AVAILABLE' THEN 1 END) as ativas,
+                COUNT(CASE WHEN status = 'DONATED' THEN 1 END) as atendidas
+            FROM GS_donations 
+            WHERE EXTRACT(YEAR FROM created_at) = p_year 
+            AND EXTRACT(MONTH FROM created_at) = p_month;
+            
+        v_new_users NUMBER;
+        v_new_orgs NUMBER;
+        v_new_matches NUMBER;
+        v_month_name VARCHAR2(20);
+    BEGIN
+        -- Determinar nome do mês
+        IF p_month = 1 THEN v_month_name := 'Janeiro';
+        ELSIF p_month = 2 THEN v_month_name := 'Fevereiro';
+        ELSIF p_month = 3 THEN v_month_name := 'Março';
+        ELSIF p_month = 4 THEN v_month_name := 'Abril';
+        ELSIF p_month = 5 THEN v_month_name := 'Maio';
+        ELSIF p_month = 6 THEN v_month_name := 'Junho';
+        ELSIF p_month = 7 THEN v_month_name := 'Julho';
+        ELSIF p_month = 8 THEN v_month_name := 'Agosto';
+        ELSIF p_month = 9 THEN v_month_name := 'Setembro';
+        ELSIF p_month = 10 THEN v_month_name := 'Outubro';
+        ELSIF p_month = 11 THEN v_month_name := 'Novembro';
+        ELSE v_month_name := 'Dezembro';
+        END IF;
+        
+        DBMS_OUTPUT.PUT_LINE('=== RELATÓRIO DE ATIVIDADE MENSAL ===');
+        DBMS_OUTPUT.PUT_LINE('Período: ' || v_month_name || '/' || p_year);
+        DBMS_OUTPUT.PUT_LINE(' ');
+        
+        -- Buscar estatísticas adicionais
+        SELECT COUNT(*) INTO v_new_users 
+        FROM GS_users 
+        WHERE EXTRACT(YEAR FROM created_at) = p_year 
+        AND EXTRACT(MONTH FROM created_at) = p_month;
+        
+        SELECT COUNT(*) INTO v_new_orgs 
+        FROM GS_organizations 
+        WHERE EXTRACT(YEAR FROM created_at) = p_year 
+        AND EXTRACT(MONTH FROM created_at) = p_month;
+        
+        SELECT COUNT(*) INTO v_new_matches 
+        FROM GS_matches 
+        WHERE EXTRACT(YEAR FROM created_at) = p_year 
+        AND EXTRACT(MONTH FROM created_at) = p_month;
+        
+        DBMS_OUTPUT.PUT_LINE('Novos usuários: ' || v_new_users);
+        DBMS_OUTPUT.PUT_LINE('Novas organizações: ' || v_new_orgs);
+        DBMS_OUTPUT.PUT_LINE('Novos matches: ' || v_new_matches);
+        DBMS_OUTPUT.PUT_LINE(' ');
+        
+        -- Exibir estatísticas de necessidades e doações
+        FOR rec IN c_monthly_stats LOOP
+            DBMS_OUTPUT.PUT_LINE(rec.tipo || ':');
+            DBMS_OUTPUT.PUT_LINE('  Total criadas: ' || rec.total);
+            DBMS_OUTPUT.PUT_LINE('  Ativas: ' || rec.ativas);
+            DBMS_OUTPUT.PUT_LINE('  Atendidas: ' || rec.atendidas);
+            
+            IF rec.total > 0 THEN
+                DBMS_OUTPUT.PUT_LINE('  Taxa de atendimento: ' || 
+                    TO_CHAR((rec.atendidas / rec.total) * 100, '999.9') || '%');
+            END IF;
+            DBMS_OUTPUT.PUT_LINE(' ');
+        END LOOP;
+        
+    END generate_monthly_activity_report;
 
     -- ==============================================
     -- ORGANIZATIONS PROCEDURES IMPLEMENTATION

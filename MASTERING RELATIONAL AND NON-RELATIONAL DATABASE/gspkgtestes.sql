@@ -1,3 +1,5 @@
+set serveroutput on;
+
 -- ==============================================
 -- ORGANIZATIONS - INSERT, UPDATE, DELETE
 -- ==============================================
@@ -182,6 +184,108 @@ END;
 -- DELETE: Remover match (assumindo ID 6 - match recém criado)
 BEGIN
     GS_MANAGEMENT_PKG.DELETE_MATCH(p_id => 6);
+END;
+/
+
+-- =====================================================
+-- EXEMPLO 1: Usando as funções
+-- =====================================================
+DECLARE
+    v_total_needs NUMBER;
+    v_efficiency NUMBER;
+    v_demand_level VARCHAR2(20);
+BEGIN
+    -- Testar função de total de necessidades ativas
+    v_total_needs := GS_MANAGEMENT_PKG.get_total_active_needs();
+    DBMS_OUTPUT.PUT_LINE('Total de necessidades ativas: ' || v_total_needs);
+    
+    -- Testar eficiência de uma organização (assumindo ID 1)
+    v_efficiency := GS_MANAGEMENT_PKG.get_organization_efficiency(1);
+    DBMS_OUTPUT.PUT_LINE('Eficiência da organização 1: ' || v_efficiency || '%');
+    
+    -- Testar nível de demanda por categoria
+    v_demand_level := GS_MANAGEMENT_PKG.get_category_demand_level('FOOD');
+    DBMS_OUTPUT.PUT_LINE('Nível de demanda para FOOD: ' || v_demand_level);
+    
+    v_demand_level := GS_MANAGEMENT_PKG.get_category_demand_level('MEDICAL');
+    DBMS_OUTPUT.PUT_LINE('Nível de demanda para MEDICAL: ' || v_demand_level);
+END;
+/
+
+-- =====================================================
+-- EXEMPLO 2: Relatório de organizações com cursor
+-- =====================================================
+DECLARE
+    v_cursor GS_MANAGEMENT_PKG.c_org_stats;
+    v_record GS_MANAGEMENT_PKG.t_org_stats;
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('=== RELATÓRIO DE ORGANIZAÇÕES ===');
+    
+    GS_MANAGEMENT_PKG.generate_organization_report(v_cursor);
+    
+    LOOP
+        FETCH v_cursor INTO v_record;
+        EXIT WHEN v_cursor%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE('Organização: ' || v_record.org_name);
+        DBMS_OUTPUT.PUT_LINE('  Tipo: ' || NVL(v_record.org_type, 'N/A'));
+        DBMS_OUTPUT.PUT_LINE('  Usuários: ' || v_record.total_users);
+        DBMS_OUTPUT.PUT_LINE('  Necessidades: ' || v_record.total_needs);
+        DBMS_OUTPUT.PUT_LINE('  Matches: ' || v_record.total_matches);
+        DBMS_OUTPUT.PUT_LINE('  Score médio: ' || NVL(TO_CHAR(v_record.avg_compatibility), 'N/A'));
+        DBMS_OUTPUT.PUT_LINE('  ');
+    END LOOP;
+    
+    CLOSE v_cursor;
+END;
+/
+
+-- =====================================================
+-- EXEMPLO 3: Relatório de doações por categoria
+-- =====================================================
+DECLARE
+    v_cursor GS_MANAGEMENT_PKG.c_donation_report;
+    v_record GS_MANAGEMENT_PKG.t_donation_report;
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('=== RELATÓRIO DE DOAÇÕES POR CATEGORIA ===');
+    
+    GS_MANAGEMENT_PKG.generate_donation_summary(v_cursor);
+    
+    DBMS_OUTPUT.PUT_LINE('CATEGORIA        | TOTAL | QTD_TOTAL | DISPONÍVEL | DOADA | MÉDIA');
+    DBMS_OUTPUT.PUT_LINE('------------------------------------------------------------------');
+    
+    LOOP
+        FETCH v_cursor INTO v_record;
+        EXIT WHEN v_cursor%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE(
+            RPAD(v_record.category, 16) || ' | ' ||
+            LPAD(v_record.total_donations, 5) || ' | ' ||
+            LPAD(v_record.total_quantity, 9) || ' | ' ||
+            LPAD(v_record.available_qty, 10) || ' | ' ||
+            LPAD(v_record.donated_qty, 5) || ' | ' ||
+            LPAD(TO_CHAR(v_record.avg_quantity, '999.99'), 6)
+        );
+    END LOOP;
+    
+    CLOSE v_cursor;
+END;
+/
+
+-- =====================================================
+-- EXEMPLO 4: Relatório de eficiência de matching
+-- =====================================================
+BEGIN
+    GS_MANAGEMENT_PKG.generate_matching_efficiency_report();
+END;
+/
+
+-- =====================================================
+-- EXEMPLO 5: Relatório de atividade mensal
+-- =====================================================
+BEGIN
+    -- Relatório para junho de 2025
+    GS_MANAGEMENT_PKG.generate_monthly_activity_report(2025, 6);
 END;
 /
 
