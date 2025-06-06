@@ -482,6 +482,10 @@ INTERVAL (NUMTOYMINTERVAL(1, 'MONTH'));
 4. **Integração IoT**: Suporte a sensores para monitoramento em tempo real
 5. **Machine Learning**: Tabelas para armazenar modelos de IA treinados
 
----
+## 👥 Equipe de Desenvolvimento
 
-**Esta documentação representa a estrutura completa do banco de dados ResourceMap, designed para suportar operações humanitárias eficientes e escaláveis.**
+- Beatriz Silva - RM552600
+- Vitor Onofre Ramos - RM553241
+- Pedro Henrique Soares Araujo - RM553801
+
+---
