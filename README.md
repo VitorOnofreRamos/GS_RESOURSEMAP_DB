@@ -185,7 +185,7 @@ CREATE TABLE GS_auditoria(
 
 ### Diagrama de Relacionamento
 
-![Modelo de Relacionamento](Model/gsreoursemapdbmodel.PNG)
+![Modelo de Relacionamento](Model/gsreoursemapdbmodel.png)
 
 ### Relacionamentos Detalhados
 
