@@ -4,6 +4,10 @@
 
 O banco de dados do **ResourceMap** foi projetado para suportar uma plataforma de coordenação de ajuda humanitária, permitindo o gerenciamento eficiente de organizações, usuários, necessidades, doações e correspondências entre recursos. A estrutura utiliza **Oracle Database** como SGBD principal.
 
+## ▶ Vídeo Pitch
+
+### [https://youtu.be/k7BIZsI4AwE](https://youtu.be/k7BIZsI4AwE)
+
 ## 🏗️ Arquitetura do Banco
 
 ### Características Principais
